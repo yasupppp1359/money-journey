@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>マネー・ジャーニー</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#0b1020;color:#e8ecff;font-family:system-ui,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;user-select:none}
+#app{position:fixed;inset:0}.screen{position:absolute;inset:0;display:none}.screen.active{display:flex}
+
+/* タイトル */
+#scr-title{align-items:center;justify-content:center;background:radial-gradient(circle at 50% 20%,#1d2a55,#0b1020 70%);position:relative}
+.title-wrap{text-align:center;padding:24px}.title-wrap h1{font-size:28px;margin:0 0 6px;background:linear-gradient(90deg,#7dd3fc,#c4b5fd,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent}
+.title-wrap p{color:#9aa6d4;font-size:13px;margin:0 0 22px}
+.big-btn{display:block;width:260px;margin:12px auto;padding:15px;font-size:17px;font-weight:700;border:none;border-radius:16px;background:linear-gradient(180deg,#4f7cff,#3355d6);color:#fff;cursor:pointer;box-shadow:0 6px 0 #22307a}
+.big-btn:active{transform:translateY(3px);box-shadow:0 3px 0 #22307a}.big-btn:disabled{background:#2a3050;color:#5b638a;box-shadow:0 6px 0 #1a1f38;cursor:default}
+#btn-bgm-title{position:absolute;top:20px;right:20px;width:50px;height:50px;border-radius:50%;background:#131a35ee;border:2px solid #2c3766;color:#cfd8ff;font-size:24px;cursor:pointer}
+
+/* セットアップ */
+#scr-setup{overflow-y:auto;display:none;flex-direction:column;padding:20px}#scr-setup.active{display:flex}
+.setup-wrap{max-width:560px;margin:0 auto;width:100%}.setup-wrap h2{font-size:20px;text-align:center;margin:10px 0 18px}
+.row{display:flex;align-items:center;gap:12px;margin:12px 0}.row.end{justify-content:flex-end}
+.seg{display:flex;gap:6px}.seg button{padding:8px 16px;border-radius:10px;border:2px solid #2c3766;background:#151c38;color:#9aa6d4;font-weight:700;cursor:pointer;font-size:15px}.seg button.on{background:#4f7cff;border-color:#4f7cff;color:#fff}
+.pinput{display:flex;align-items:center;gap:10px;background:#121834;border:1px solid #26305a;border-radius:14px;padding:10px 12px;margin:8px 0}
+.pinput input[type=text]{flex:1;background:transparent;border:none;color:#fff;font-size:16px;outline:none}.pinput .dot{width:14px;height:14px;border-radius:50%;flex-shrink:0}
+.pieces{display:flex;gap:4px}.pieces button{width:38px;height:38px;font-size:20px;border-radius:10px;border:2px solid #2c3766;background:#151c38;cursor:pointer;line-height:1}
+.pieces button.on{border-color:#fbbf24;background:#3a2f10}.pieces button:disabled{opacity:.25;cursor:default}
+.btn{padding:11px 20px;border-radius:12px;border:none;background:#232b52;color:#cfd8ff;font-weight:700;cursor:pointer;font-size:15px}.btn.primary{background:linear-gradient(180deg,#4f7cff,#3355d6);color:#fff}
+
+/* 盤面 */
+#scr-game{display:none}
+#scr-game.active{display:block} /* ここが重要：ゲーム画面の表示 */
+#board-viewport{position:absolute;inset:0;overflow:hidden;touch-action:none;background:#07080f;background-image:radial-gradient(circle at 50% 30%, #0d1430 0%, #07080f 80%),radial-gradient(#121a33 1px,transparent 1px);background-size:auto, 34px 34px}
+#world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
+#sections{position:absolute;left:0;top:0;pointer-events:none;z-index:0}
+.section-band{position:absolute;left:-500px;width:3000px;box-shadow:inset 0 0 120px rgba(0,0,0,0.7);overflow:hidden;-webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);mask-image: linear-gradient(to bottom, transparent 0%, black 8%, black 92%, transparent 100%);}
+.section-label{position:absolute;font-size:30px;font-weight:800;color:#fff;opacity:0.28;letter-spacing:0.1em;white-space:nowrap;pointer-events:none;text-shadow:0 4px 20px rgba(0,0,0,0.8)}
+.section-plain{background: linear-gradient(180deg, rgba(10,33,19,0.7), rgba(10,26,16,0.85)), url('img/plain.webp') center/cover no-repeat, linear-gradient(180deg, #0a2113 0%, #163a22 50%, #0a1a10 100%);}
+.section-port{background: linear-gradient(180deg, rgba(8,25,42,0.7), rgba(8,28,46,0.85)), url('img/port.webp') center/cover no-repeat, linear-gradient(180deg, #08192a 0%, #0f3350 50%, #081c2e 100%);}
+.section-fork{background: linear-gradient(180deg, rgba(10,16,32,0.7), rgba(10,14,26,0.85)), url('img/fork.webp') center/cover no-repeat, linear-gradient(180deg, #0a1020 0%, #231a3f 50%, #0a0e1a 100%);}
+.section-mine{background: linear-gradient(180deg, rgba(26,15,6,0.7), rgba(24,13,4,0.85)), url('img/mine.webp') center/cover no-repeat, linear-gradient(180deg, #1a0f06 0%, #38220e 50%, #180d04 100%);}
+.section-volcano{background: linear-gradient(180deg, rgba(42,6,6,0.7), rgba(30,4,4,0.85)), url('img/volcano.webp') center/cover no-repeat, linear-gradient(180deg, #2a0606 0%, #4a0e0e 50%, #1e0404 100%);}
+
+#links{position:absolute;left:0;top:0;overflow:visible;pointer-events:none;z-index:1}#links line{stroke:#2b3768;stroke-width:5;stroke-linecap:round}#links line.branch{stroke:#6d5bd0;stroke-dasharray:8 8}
+.cell{position:absolute;width:90px;height:90px;margin:-45px 0 0 -45px;border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#161d3a;border:3px solid #2c3766;font-size:28px;line-height:1;box-shadow:0 3px 8px rgba(0,0,0,.5);z-index:2}
+.cell .lbl{font-size:9px;color:#8b96c6;margin-top:2px}.cell.current{outline:3px solid #fbbf24;outline-offset:2px}
+.cell[data-section="plain"]{border-color:#4ade80 !important; background:#122a1a !important}.cell[data-section="port"]{border-color:#38bdf8 !important; background:#0d2333 !important}
+.cell[data-section="fork"]{border-color:#a78bfa !important; background:#1c1636 !important}.cell[data-section="mine"]{border-color:#fb923c !important; background:#2a1a0d !important}.cell[data-section="volcano"]{border-color:#ef4444 !important; background:#2a0e0e !important}
+.cell.start{border-color:#4ade80 !important;background:#122a1a !important}.cell.goal{border-color:#fbbf24 !important;background:#2a2410 !important;box-shadow:0 0 22px #fbbf2499 !important}
+.cell.fork,.cell.merge{border-color:#a78bfa !important;background:#1c1636 !important}
+
+.token{position:absolute;width:48px;height:48px;margin:-24px 0 0 -24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;border:3px solid #fff;box-shadow:0 3px 10px rgba(0,0,0,.6);transition:left .16s linear,top .16s linear;z-index:5}
+.token.turn{animation:bob .7s ease-in-out infinite alternate}@keyframes bob{to{transform:translateY(-6px) scale(1.06)}}
+
+#hud-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;pointer-events:none;z-index:10}
+#turn-info{background:#131a35ee;border:1px solid #2c3766;border-radius:12px;padding:7px 13px;font-size:13px;font-weight:700;pointer-events:auto}
+#hud-btns{display:flex;gap:8px;pointer-events:auto}#hud-btns button{width:42px;height:42px;border-radius:12px;border:1px solid #2c3766;background:#131a35ee;color:#cfd8ff;font-size:18px;cursor:pointer}
+#hud-remain{position:absolute;left:12px;bottom:112px;background:#131a35ee;border:1px solid #2c3766;border-radius:12px;padding:6px 13px;font-size:12px;color:#9aa6d4;z-index:10}
+#log-panel{position:absolute;left:12px;bottom:160px;width:250px;background:#131a35dd;border:1px solid #2c3766;border-radius:12px;padding:6px 10px;font-size:11px;z-index:10;pointer-events:none;}
+#log-panel .log-title{font-size:10px;color:#8b96c6;margin-bottom:4px}#log-list div{color:#cfd8ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5}
+#ranking-panel{position:absolute;right:12px;top:60px;width:160px;background:#131a35dd;border:1px solid #2c3766;border-radius:12px;padding:6px;font-size:11px;z-index:10;pointer-events:none;}
+#ranking-panel .rank-title{text-align:center;color:#8b96c6;margin-bottom:4px;font-size:10px}
+.rank-row{display:flex;justify-content:space-between;padding:2px 4px;border-radius:4px;margin-bottom:2px;color:#cfd8ff}.rank-row.on{background:#2a2410;border:1px solid #fbbf24;color:#fbbf24;font-weight:700}
+
+#hud-bottom{position:absolute;left:0;right:0;bottom:0;padding:8px 12px 14px;background:linear-gradient(transparent,#0b1020dd 30%);z-index:10}
+#player-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}#player-strip::-webkit-scrollbar{display:none}
+.pchip{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:#131a35ee;border:1px solid #2c3766;border-radius:12px;padding:5px 10px;font-size:12px}.pchip.on{border-color:#fbbf24;background:#2a2410ee}.pchip .m{font-weight:700;color:#7dd3fc}
+#btn-roll{display:block;width:100%;padding:15px;font-size:17px;font-weight:800;border:none;border-radius:16px;background:linear-gradient(180deg,#4f7cff,#3355d6);color:#fff;box-shadow:0 5px 0 #22307a;cursor:pointer}
+#btn-roll:disabled{background:#242c4e;color:#5b638a;box-shadow:0 5px 0 #161c33;cursor:default}#btn-roll:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 #22307a}
+
+#dice-layer{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#0008;backdrop-filter:blur(3px);z-index:50}#dice-layer.show{display:flex}
+.dice-scene{perspective:800px}#dice{width:100px;height:100px;position:relative;transform-style:preserve-3d;transition:transform 1.6s cubic-bezier(.25,.9,.2,1)}
+#dice .side{position:absolute;inset:0;background:#fff;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:72px;color:#1a2140;box-shadow:inset 0 0 0 3px #e3e7f5;backface-visibility:hidden;line-height:1}
+.f1{transform:translateZ(50px)} .f2{transform:rotateY(90deg) translateZ(50px)} .f3{transform:rotateY(180deg) translateZ(50px)} .f4{transform:rotateY(-90deg) translateZ(50px)} .f5{transform:rotateX(90deg) translateZ(50px)} .f6{transform:rotateX(-90deg) translateZ(50px)}
+
+#modal-layer{position:absolute;inset:0;display:none;align-items:center;justify-content:center;background:#000a;backdrop-filter:blur(3px);z-index:60;padding:20px}#modal-layer.show{display:flex}
+.pop{background:linear-gradient(180deg,#1b2450,#121834);border:2px solid #3a4780;border-radius:22px;padding:22px;max-width:400px;width:100%;text-align:center;animation:pop .25s cubic-bezier(.2,1.4,.5,1);box-shadow:0 20px 50px #000a}
+@keyframes pop{from{transform:scale(.82);opacity:0}to{transform:scale(1);opacity:1}}
+.pop .em{font-size:48px;line-height:1;margin-bottom:6px}.pop h3{margin:0 0 10px;font-size:18px}.pop .txt{margin:0 0 10px;font-size:15px;color:#cfd8ff;line-height:1.6}
+.pop .cmt{margin:0 0 14px;font-size:13px;color:#fbbf24;line-height:1.6;background:#fbbf2412;border-radius:10px;padding:9px}
+.pop .btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap}.pop .btns .btn{flex:1;min-width:100px}
+
+.toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);background:#1b2450ee;border:1px solid #4f7cff;border-radius:12px;padding:10px 16px;font-size:13px;z-index:100;animation:tin .3s;white-space:nowrap}
+@keyframes tin{from{transform:translate(-50%,-10px);opacity:0}to{transform:translate(-50%,0);opacity:1}}
+
+#result-layer{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;padding:20px 16px;overflow-y:auto;background:radial-gradient(circle at 50% 10%,#1d2a55,#0b1020 70%);z-index:80}#result-layer.show{display:flex}
+.result-title{font-size:26px;font-weight:800;margin:20px 0 16px;letter-spacing:.1em;background:linear-gradient(90deg,#7dd3fc,#c4b5fd,#fbbf24);-webkit-background-clip:text;background-clip:text;color:transparent}
+#result-table{display:flex;flex-direction:column;gap:6px;width:100%;max-width:680px}
+.result-row{display:flex;align-items:center;background:#131a35;border:1px solid #2c3766;border-radius:12px;padding:8px 10px;gap:6px;font-size:12px;animation:slidein .35s ease both}
+@keyframes slidein{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.result-row.first{border-color:#fbbf24;background:#2a2410;box-shadow:0 0 20px #fbbf2444}
+.res-rank{font-size:16px;font-weight:800;width:48px;text-align:center;color:#fbbf24}.res-name{flex:1;font-weight:700;font-size:13px;min-width:80px}
+.res-col{display:flex;flex-direction:column;align-items:flex-end;min-width:56px}.res-col span{font-size:8px;color:#8b96c6;line-height:1}.res-col b{font-size:12px;font-weight:700}
+.res-total{font-size:15px;font-weight:800;color:#7dd3fc;width:80px;text-align:right}.res-total.plus{color:#34d399}
+#result-layer.flash{animation:flash .15s 4}@keyframes flash{50%{background:#fff2}}#result-footer{margin:20px 0;width:100%;max-width:680px;text-align:center}
+</style>
+</head>
+<body>
+<div id="app">
+  <section id="scr-title" class="screen active">
+    <button id="btn-bgm-title" title="BGM">🔊</button>
+    <div class="title-wrap">
+      <h1>マネー・ジャーニー</h1>
+      <p>～一邦とミホコインの旅～</p>
+      <button id="btn-new" class="big-btn">はじめから</button>
+      <button id="btn-continue" class="big-btn" disabled>つづきから</button>
+      <button id="btn-rules" class="big-btn" style="background:linear-gradient(180deg,#10b981,#059669); box-shadow:0 6px 0 #064e3b;">あそびかた</button>
+    </div>
+  </section>
+  <section id="scr-setup" class="screen">
+    <div class="setup-wrap">
+      <h2>プレイヤー設定</h2>
+      <div class="row"><label>人数</label><div id="player-count" class="seg"></div></div>
+      <div id="player-inputs"></div>
+      <div class="row end"><button id="btn-back" class="btn">もどる</button><button id="btn-start" class="btn primary">スタート！</button></div>
+    </div>
+  </section>
+  <section id="scr-game" class="screen">
+    <div id="board-viewport">
+      <div id="world">
+        <div id="sections"></div><svg id="links"></svg><div id="cells"></div><div id="tokens"></div>
+      </div>
+    </div>
+    <header id="hud-top">
+      <div id="turn-info">…</div>
+      <div id="hud-btns">
+        <button id="btn-recenter" title="現在地">🎯</button>
+        <button id="btn-status" title="ステータス">👥</button>
+        <button id="btn-bgm" title="BGM">🔊</button>
+      </div>
+    </header>
+    <div id="hud-remain"></div>
+    <div id="ranking-panel"></div>
+    <div id="log-panel"><div class="log-title">📝 プレイログ</div><div id="log-list"></div></div>
+    <footer id="hud-bottom">
+      <div id="player-strip"></div>
+      <button id="btn-roll" disabled>サイコロを振る</button>
+    </footer>
+    <div id="dice-layer">
+      <div class="dice-scene">
+        <div id="dice">
+          <div class="side f1">⚀</div><div class="side f2">⚁</div><div class="side f3">⚂</div>
+          <div class="side f4">⚃</div><div class="side f5">⚄</div><div class="side f6">⚅</div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div id="result-layer">
+    <div class="result-title" id="result-title">RESULT</div>
+    <div id="result-table"></div>
+    <div id="result-footer"></div>
+  </div>
+  <div id="modal-layer"><div id="modal"></div></div>
+</div>
+
+<script>
+const COL = 8, SP_X = 120, SP_Y = 150, START_MONEY = 2000, GOAL_POS = 200, SAVE_KEY = 'mj-save-v1';
+const ASSETS = { bond:{name:'田中国債',emoji:'📜'}, stock:{name:'一邦会社株',emoji:'📈'}, coin:{name:'ミホコイン',emoji:'🪙'} };
+const INS = { fire:{name:'火災保険',emoji:'🔥'}, water:{name:'水害保険',emoji:'🌊'} };
+const PIECES = ['🐱','🐶','🦊','🐼','🐸','🐻','🐧','🐷'];
+const COLORS = ['#f87171','#60a5fa','#34d399','#fbbf24','#c084fc'];
+const T = {START:'start',GOAL:'goal',FORK:'fork',MERGE:'merge',PLUS:'plus',MINUS:'minus',CARD:'card',SEC:'sec',INS:'ins',DIV:'div',MARKET:'market',DISASTER:'disaster',MOVE:'move',REST:'rest',STEAL:'steal'};
+const META = {start:{e:'🏁',l:'START'},goal:{e:'🏆',l:'GOAL'},fork:{e:'🔀',l:'分岐'},merge:{e:'🔗',l:'合流'},plus:{e:'💰',l:'プラス'},minus:{e:'💸',l:'マイナス'},card:{e:'🎴',l:'カード'},sec:{e:'🏦',l:'証券'},ins:{e:'🛡️',l:'保険'},div:{e:'📜',l:'配当'},market:{e:'📊',l:'相場'},disaster:{e:'🌪️',l:'災害'},move:{e:'👣',l:'移動'},rest:{e:'💤',l:'休み'},steal:{e:'🦹',l:'横取り'}};
+
+const PLUS_TXT = {
+  plain:['デデが「これで美味いものでも食え」と{v}円くれた。まだ昼なのに酔ってる','デデが「これで美味いものでも食え」と{v}円くれた。酔って無かったから逆に怖い','ようこちゃんの家で大掃除を手伝ったら、お礼に{v}円くれた。本人の部屋はカオスだった','淳くんの作ったおにぎりを売ったら{v}円。米がツヤツヤしてた','天ちゃんが財布を落としたのを届けたら、お礼に{v}円くれた。本人は最後まで気づかなかった','トモちゃんのまつエクの練習台になったら{v}円もらえた。目がバチバチになった','公園のベンチでイッツーと競馬中継を見てたら、なぜか{v}円分けた'],
+  port:['港でイッツーと一緒に売り子をしたら{v}円儲かった。イッツーは儲け話に目がない','淳くんの作った弁当を港で売ったら完売。+{v}円。音楽も披露したらしい','デデのひつじんに港の業者が来て、その紹介料が{v}円。デデは酔って覚えてない','ようこちゃんの「いい話がある」に乗ったら、意外と本当だった。+{v}円','ミッチーの焼肉屋の手伝いをしたら、まかないと{v}円','トモちゃんの客層が港の富裕層で、紹介料が{v}円'],
+  fork:['森でイッツーと二手に分かれたら、自分だけ宝箱を見つけた。+{v}円','デデが「こっちは危ないぞ」と道案内してくれた。お礼に{v}円くれた（逆では？）','森の奥で淳くんがギターを弾いてた。投げ銭が{v}円集まった','天ちゃんが「こっちが近道」と言ったら本当に近道だった。奇跡。+{v}円','ミッチーが森で迷子になり、捜索報酬が{v}円'],
+  mine:['イッツーと金山で掘ったら金脈に当たった。山分けで+{v}円。イッツーは「次はもっと」と目がギラギラ','淳くんが掘った金を加工してくれたら、価値が{v}円分アップ','デデが「掘ったら出た」と金塊を{v}円で売ってくれた。酔ってたので相場は不明','トモちゃんの顧客に金山の話をしたら、紹介料が{v}円。営業力おそるべし','ミッチーが焼肉屋の休憩中に掘ったら出た。+{v}円。運だけはある'],
+  volcano:['火山の熱でミホコインが溶けて純金に。+{v}円。イッツーが「俺のアイデア」と主張','デデが「最後だ、持っていけ」と{v}円渡してきた。酔ってるが目は本気','淳くんがマグマの熱で料理をしたら、なぜか{v}円で売れた','トモちゃんが火山灰パックを開発。なぜか{v}円の売上','天ちゃんが「ここが頂上」と言った場所が、実は絶景スポットだった。観光収入+{v}円']
+};
+const MINUS_TXT = {
+  plain:['足の小指をぶつけた。治療費{v}円','デデに焼肉を奢ったら、デデは財布を忘れて酔い潰れた。-{v}円','ようこちゃんの忘れ物を届けたはずが、なぜか自分がタクシー代を払った。-{v}円','天ちゃんと正面衝突して、自分の方が転んだ。治療費-{v}円','ミッチーが体調不良で救急外来へ。付き添いの交通費-{v}円','トモちゃんの「教育ママ講演」を1時間聞かされて、お茶代-{v}円'],
+  port:['イッツーの「絶対儲かる」に乗ったら、まさかの外れ。-{v}円。イッツーはケロッとしてた','ひつじんの店で食あたり。デデは謝りつつ酔って謝罪が噛み合ってない。治療費-{v}円','港のカモメに財布を盗られた。天ちゃんは「カモメ可愛い」で終わった。-{v}円','ミッチーが港で倒れた。付き添いと薬代で-{v}円。本人は「大丈夫〜」しか言わない','トモちゃんのまつエクをやりすぎて、まぶたが重い。眼科-{v}円','デデの飲み会に付き合わされ、なぜか自分が支払った。-{v}円。デデは記憶なし'],
+  fork:['イッツーと別の道を行ったら、自分だけ泥沼にはまった。治療費-{v}円','ようこちゃんが「この道知ってる」と言った道が、実は私有地だった。罰金-{v}円','天ちゃんの「危ないよ」を無視したら本当に危なかった。-{v}円','トモちゃんの「森でエステ」に付き合わされ、なぜか自分が材料費を負担。-{v}円','森のキノコを食べた淳くんが具合悪くなり、付き添いで病院へ。-{v}円'],
+  mine:['イッツーの「ここ掘れ」に従ったら、ただの石だった。調査費-{v}円。イッツーは「次がある」','天ちゃんが「ここ安全」と言った坑道が崩落。-{v}円。本人は「あれ？」','ようこちゃんが金山の権利書をなくした。再発行-{v}円','トモちゃんが「金山でエステ」を計画し、なぜか自分がスポンサー。-{v}円','ミッチーが坑道で倒れた。付き添いと治療費-{v}円。本人「大丈夫、慣れてる」'],
+  volcano:['足元が崩れてマグマに…はならなかったが、装備が全損。-{v}円','デデの「大丈夫だって」を信じたら、火口の近くで足を滑らせた。-{v}円','イッツーが「ここは熱い」と押したら、本当に熱くてやけど。-{v}円','ようこちゃんの「ちょっと待って」で足止めされ、噴火に巻き込まれた。-{v}円','ミッチーが「火山で焼肉」を決行。なぜか自分が片付け。-{v}円']
+};
+const STOCK_UP = ['一邦会社の社長が謎ダンスでバズった。株+{v}%','さくら会社との提携発表。株+{v}%','一邦会社が新商品「いや、そこは嘘でしょ」を発売。株+{v}%','株主優待が謎に豪華だと話題。株+{v}%'];
+const STOCK_DN = ['会社の不正発覚。株-{v}%','社長が会見で「え、なんで？」しか言わなかった。株-{v}%','一邦会社のCMが放送事故。株-{v}%','新製品、実はただの箱だった。株-{v}%'];
+const COIN_UP  = ['ミホコインがSNSでバズった。+{v}%','有名YouTuberが絶賛。+{v}%','創業者が猫の写真を投稿した。+{v}%','なぜか海外の富豪が大量購入。+{v}%'];
+const COIN_DN  = ['取引所がメンテ延長。何度目か。-{v}%','開発者が行方不明。-{v}%','ホワイトペーパーが全部ひらがなだった。-{v}%','実はただの置物だった疑惑。-{v}%'];
+const DIS_FIRE = ['🔥 火災発生！キッチンでうたた寝した','🌋 地震！タンスが倒れた','⚡ 漏電！コンセントから火花'];
+const DIS_WATER= ['🌀 台風！屋根が飛んだ','🌊 洪水！家が浸水','💧 雨漏り！天井から雨'];
+
+const CARDS = [
+  { type:'money', sign: 1, min:300, max:500, text:'デデが酔った勢いで{v}円くれた。明日返せと言われるかも' },
+  { type:'money', sign: 1, min:100, max:200, text:'ようこちゃんの推しグッズにプレミアがついた。+{v}円' },
+  { type:'money', sign: 1, min:200, max:400, text:'接骨院の先生に肩を揉まれた。なぜか+{v}円' },
+  { type:'money', sign: 1, min:300, max:600, text:'さくら会社の株主総会に紛れ込んで+{v}円' },
+  { type:'money', sign: 1, min:100, max:150, text:'道端で小銭を拾った。+{v}円' },
+  { type:'money', sign: 1, min:400, max:800, text:'トモちゃんの宿題を代わりにやったら+{v}円' },
+  { type:'money', sign:-1, min:200, max:400, text:'デデの飲み会でなぜか自分が支払った。-{v}円（デデは記憶なし）' },
+  { type:'money', sign:-1, min:150, max:250, text:'ひつじんの店で食あたり。治療費-{v}円' },
+  { type:'money', sign:-1, min:100, max:180, text:'天ちゃんの靴を踏んだ。弁償-{v}円' },
+  { type:'money', sign:-1, min:200, max:350, text:'ミッチーに借りた漫画を濡らした。弁償-{v}円' },
+  { type:'money', sign:-1, min:300, max:500, text:'財布を落とした。再発行手数料-{v}円' },
+  { type:'money', sign:-1, min:150, max:300, text:'ようこちゃんの引っ越しを手伝ったはずが、なぜか自分の交通費。-{v}円' },
+  { type:'next_dice', sign: 1, perPip:100, text:'イッツーが「次の出目×100円賭けよう」と提案。勝った' },
+  { type:'next_dice', sign:-1, perPip:100, text:'イッツーが「次の出目×100円賭けよう」と提案。負けた' },
+  { type:'next_dice', sign: 1, perPip:150, text:'デデが「次の出目×150円やるよ」と酔って約束した' },
+  { type:'finance_change', target:'stock', text:'一邦会社の新製品がバズった！株価{v}%上昇' },
+  { type:'finance_change', target:'stock', text:'一邦会社の不祥事が発覚…株価{v}%下落' },
+  { type:'finance_change', target:'coin',  text:'ミホコインがSNSでバズった！+{v}%' },
+  { type:'finance_change', target:'coin',  text:'ミホコインの開発者が行方不明…-{v}%' },
+  { type:'finance_gain', target:'stock', sign: 1, min:200, max:400, text:'一邦会社の株主優待で株を{v}円分もらった！' },
+  { type:'finance_gain', target:'coin',  sign: 1, min:200, max:400, text:'ミホコインのエアドロップで{v}円分ゲット！' },
+  { type:'finance_gain', target:'stock', sign:-1, min:200, max:300, text:'一邦会社の株が{v}円分没収された' },
+  { type:'finance_gain', target:'coin',  sign:-1, min:200, max:300, text:'ミホコインのウォレットがハッキングされ{v}円分消失…' },
+  { type:'steal_random', min:200, max:400, text:'{name}から{v}円巻き上げた！' },
+  { type:'pay_random',   min:200, max:400, text:'{name}に{v}円支払った' },
+  { type:'steal_all',    min:100, max:200, text:'全員から{v}円ずつ巻き上げた！' },
+  { type:'pay_all',      min:100, max:200, text:'全員に{v}円ずつ支払った' },
+  { type:'lose_insurance', text:'保険の更新を忘れて、保険を1つ失った…' },
+  { type:'disaster', kind:'fire', text:'火災発生！保険があれば見舞金、なければ支払い' },
+  { type:'move', dist: 3, text:'3マス進む（マス効果なし）' },
+  { type:'charm', charm:'lucky', text:'福の神が取り憑いた！次の自分のターンまで、他プレイヤーがプラスマスで得た金額が自分にも入る' },
+  { type:'charm', charm:'unlucky', text:'貧乏神が取り憑いた…次の自分のターンまで、他プレイヤーがプラスマスで得た金額を自分が支払う' },
+  { type:'curse', text:'呪いのミイラを押し付けられた…次に止まったマイナスマスを誰かに擦り付ける' },
+  { type:'rand_money', up:{ sign:1, min:200, max:400, text:'勝浦最高！と叫んだら女将さんが喜んでお小遣いくれた。+{v}円' }, dn:{ sign:-1, min:200, max:400, text:'勝浦最高！と叫んだら隣の部屋のヤクザに怒られた。-{v}円' } },
+  { type:'move_back_leader', dist:5, text:'チャモと遊んでたら大きなくしゃが出た。先頭のプレイヤーが5マス後退！' },
+  { type:'rand_money', up:{ sign:1, min:100, max:300, text:'温泉で大きなオナラをしたら気泡の精から{v}円貰った。' }, dn:{ sign:-1, min:100, max:300, text:'温泉で大きなオナラをしてタイルを壊した。弁償-{v}円' } },
+  { type:'nothing', text:'ドヤ顔でモノマネを披露してみたが、みんなに無視された。' },
+  { type:'nothing', text:'実はパンツに穴が空いている。まだ誰も知らない。' },
+  { type:'nothing', text:'デデが何か歌い出した。とりあえずゲームに集中しよう。' },
+  { type:'money', sign:-1, min:200, max:400, text:'淳くんが凧をドローンで作ってくれたが、むしろ材料費がかさんだ。-{v}円' },
+  { type:'finance_all_up', amount:50, text:'VIVANTのブルーウォーカーがパッキングに成功。保有している全ての金融商品が50円ずつ増えた！' },
+  { type:'rand_money', up:{ sign:1, min:200, max:400, text:'ドラムが「そうだよね、野崎さん」と言っている。乃木になりすまして凌いだ。「乃木さんだったのね、ごめんね」と+{v}円' }, dn:{ sign:-1, min:200, max:400, text:'ドラムが「そうだよね、野崎さん」と言っている。野崎になりすましてバレた。怒られて-{v}円' } },
+  { type:'rand_pay_rest', pay:{ min:200, max:400, text:'スパイファミリーを知らなくて恥をかいた。-{v}円' }, rest:{ text:'スパイファミリーを知らなくて恥をかいた。1回休み' } },
+  { type:'rand_money_back', up:{ min:100, max:300, text:'緑黄色社会と緑黄色野菜の区別がつかない。とても健康になった+{v}円' }, back:{ dist:3, text:'緑黄色社会と緑黄色野菜の区別がつかない。混乱して3マス戻る' } },
+  { type:'rand_triple', opt1:{ kind:'money', sign:-1, min:200, max:400, text:'夜遊びしながらYOASOBI口ずさんだら眠れなくなった。-{v}円' }, opt2:{ kind:'rest', text:'夜遊びしながらYOASOBI口ずさんだら眠れなくなった。1回休み' }, opt3:{ kind:'all_pay_me', min:100, max:200, text:'夜遊びしながらYOASOBI口ずさんだらみんなから拍手喝采！全員から{v}円ずつ貰える' } }
+];
+
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const shuffle = a => { const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]];} return b; };
+const rnd = (min,max) => min + Math.floor(Math.random()*(max-min+1));
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+function sectionOf(pos) { return pos<40?'plain':pos<80?'port':pos<107?'fork':pos<150?'mine':'volcano'; }
+function randomAmount(pos, minBase, maxBase) { const mult = 1 + (pos/200)*1.5; return Math.round(rnd(minBase, maxBase)*mult/10)*10; }
+function randomRate(pos, target) {
+  const ratio = pos/200; const isStock = target==='stock'; const baseMin = isStock?5:10, baseMax = isStock?15:30;
+  const minAbs = Math.round(baseMin + ratio*baseMin), maxAbs = Math.round(baseMax + ratio*baseMax);
+  return rnd(minAbs, maxAbs) * (Math.random() < 0.70 ? 1 : -1);
+}
+
+const S = { players:[], current:0, cells:null, finished:[], playing:false };
+let logs = ['ゲームスタート！'];
+
+function addLog(msg){ logs.unshift(msg); if (logs.length > 5) logs.pop(); renderLogs(); }
+function renderLogs(){ const el = document.getElementById('log-list'); if (!el) return; el.innerHTML = logs.map(m => `<div>・${m}</div>`).join(''); }
+
+const bgm = new Audio('music/bgm.mp3'); bgm.loop = true; bgm.volume = 0.35; let bgmOn = true;
+function playSE(filename, volume = 0.5){ try { const se = new Audio('music/' + filename); se.volume = volume; se.play().catch(()=>{}); } catch(e){} }
+function playCoin(){ playSE('coin.mp3', 0.5); }
+function playMinus(){ playSE('minus.mp3', 0.5); }
+function startBGM(){ if (!bgmOn) return; bgm.play().catch(()=>{}); }
+function toggleBGM(){
+  bgmOn = !bgmOn; if (bgmOn) bgm.play().catch(()=>{}); else bgm.pause();
+  const btn1 = document.getElementById('btn-bgm'); const btn2 = document.getElementById('btn-bgm-title');
+  if (btn1) btn1.textContent = bgmOn ? '🔊' : '🔇'; if (btn2) btn2.textContent = bgmOn ? '🔊' : '🔇';
+}
+
+function makeCells(){
+  const cells = { main:{}, a:{}, b:{} };
+  for (let i=0;i<80;i++){ const r=Math.floor(i/COL), c=i%COL, cc = r%2===0?c:COL-1-c; cells.main[i] = { pos:i, x:cc*SP_X, y:r*SP_Y }; }
+  cells.main[80] = { pos:80, x:(COL/2-0.5)*SP_X, y:10*SP_Y, fork:true, type:'fork' };
+  for (let i=0;i<25;i++){ const r=Math.floor(i/5), c=i%5; cells.a[81+i] = { pos:81+i, x:c*SP_X, y:(11+r)*SP_Y }; cells.b[81+i] = { pos:81+i, x:(c+3)*SP_X, y:(11+r)*SP_Y }; }
+  cells.main[106] = { pos:106, x:(COL/2-0.5)*SP_X, y:16*SP_Y, merge:true, type:'merge' };
+  for (let i=0;i<94;i++){ const pos = 107+i; const r=Math.floor(i/COL), c=i%COL, cc = r%2===0?c:COL-1-c; cells.main[pos] = { pos, x:cc*SP_X, y:(17+r)*SP_Y }; }
+  assignTypes(cells); return cells;
+}
+
+function assignTypes(cells){
+  function wrand(path){
+    let w;
+    if (path === 'a') w = { plus:35, minus:5,  card:15, sec:25, ins:10, market:5,  disaster:0,  move:3, rest:1, steal:1 };
+    else if (path === 'b') w = { plus:25, minus:10, card:5,  sec:20, ins:5,  market:30, disaster:3,  move:2, rest:0, steal:0 };
+    else w = { plus:25, minus:10, card:10, sec:25, ins:5, market:10, disaster:5,  move:4, rest:3, steal:3 };
+    const total = Object.values(w).reduce((a,b)=>a+b,0); let r = Math.random()*total, acc=0;
+    for (let k in w){ acc+=w[k]; if (r<acc) return k; } return 'plus';
+  }
+  const divSet = new Set([40,120,160]);
+  for (const k of ['main','a','b']){
+    for (const posStr in cells[k]){
+      const cell = cells[k][posStr]; const pos = +posStr;
+      if (cell.fork)  { cell.type='fork';  cell.section='fork'; continue; }
+      if (cell.merge) { cell.type='merge'; cell.section='fork'; continue; }
+      if (pos===0)    { cell.type='start'; cell.section='plain'; continue; }
+      if (pos===200)  { cell.type='goal';  cell.section='volcano'; continue; }
+      if (k==='main' && divSet.has(pos)) cell.type = 'div'; else cell.type = wrand(k);
+      cell.section = sectionOf(pos);
+      if (cell.type==='sec') cell.data = { items: shuffle(['bond','stock','coin']).slice(0, Math.random()<0.5?3:2) };
+      if (cell.type==='ins') cell.data = { items: Math.random()<0.5 ? ['fire','water'] : [pick(['fire','water'])] };
+      if (cell.type==='market') cell.data = { target: Math.random()<0.5?'stock':'coin' };
+      if (cell.type==='disaster') cell.data = { kind: Math.random()<0.5?'fire':'water' };
+      if (cell.type==='move') cell.data = { dir: Math.random()<0.5?1:-1, dist: pick([2,3,4,5]) };
+    }
+  }
+}
+
+function getCell(pos, branch){
+  if (pos>=81 && pos<=105){ if (branch && S.cells[branch] && S.cells[branch][pos]) return S.cells[branch][pos]; return S.cells.a[pos] || S.cells.b[pos] || S.cells.main[pos]; }
+  return S.cells.main[pos];
+}
+
+const SECTION_INFO = {
+  plain:   { label:'🌱 はじまりの草原', top: -150, height: 1000 },
+  port:    { label:'⚓ 港町エリア',     top:  500, height: 900 },
+  fork:    { label:'🌲 分かれ道の森',   top: 1300, height: 1300 },
+  mine:    { label:'⛏️ 金山エリア',     top: 2300, height: 1200 },
+  volcano: { label:'🌋 火山地帯',       top: 3100, height: 1400 },
+};
+
+function drawSections(){
+  const sectionsEl = document.getElementById('sections'); if (!sectionsEl) return; sectionsEl.innerHTML = '';
+  for (const key in SECTION_INFO){
+    const b = SECTION_INFO[key]; const el = document.createElement('div'); el.className = 'section-band section-' + key; el.dataset.section = key;
+    el.style.top = b.top + 'px'; el.style.height = b.height + 'px'; sectionsEl.appendChild(el);
+    const lbl = document.createElement('div'); lbl.className = 'section-label'; lbl.style.top = (b.top + 30) + 'px'; lbl.style.left = '30px'; lbl.textContent = b.label; sectionsEl.appendChild(lbl);
+  }
+}
+
+function render(){
+  drawSections(); const cellsEl = document.getElementById('cells'); const linksEl = document.getElementById('links'); const tokensEl = document.getElementById('tokens');
+  cellsEl.innerHTML = ''; tokensEl.innerHTML = ''; linksEl.innerHTML = '';
+  function line(a, b, cls){ const el = document.createElementNS('http://www.w3.org/2000/svg','line'); el.setAttribute('x1',a.x); el.setAttribute('y1',a.y); el.setAttribute('x2',b.x); el.setAttribute('y2',b.y); if (cls) el.setAttribute('class',cls); linksEl.appendChild(el); }
+  for (let i=0;i<79;i++) line(S.cells.main[i], S.cells.main[i+1]);
+  line(S.cells.main[80], S.cells.a[81], 'branch'); line(S.cells.main[80], S.cells.b[81], 'branch');
+  for (let i=0;i<24;i++){ line(S.cells.a[81+i], S.cells.a[81+i+1]); line(S.cells.b[81+i], S.cells.b[81+i+1]); }
+  line(S.cells.a[105], S.cells.main[106], 'branch'); line(S.cells.b[105], S.cells.main[106], 'branch');
+  for (let i=106;i<200;i++) line(S.cells.main[i], S.cells.main[i+1]);
+
+  function drawCell(cell){
+    if (!cell) return; const m = META[cell.type] || {e:'?',l:''}; const el = document.createElement('div');
+    el.className = 'cell ' + cell.type; el.style.left = cell.x + 'px'; el.style.top = cell.y + 'px';
+    el.innerHTML = `${m.e}<span class="lbl">${m.l}</span>`; el.dataset.pos = cell.pos; el.dataset.section = cell.section || 'plain';
+    cellsEl.appendChild(el); cell.el = el;
+  }
+  for (const k of ['main','a','b']){ for (const pos in S.cells[k]) drawCell(S.cells[k][pos]); }
+  S.players.forEach((p, i) => { const t = document.createElement('div'); t.className = 'token'; t.id = 'token-' + i; t.style.background = p.color; t.textContent = p.piece; tokensEl.appendChild(t); p.tokenEl = t; });
+  updateTokenPositions(); renderLogs();
+}
+
+function updateTokenPositions(){
+  const posMap = {};
+  S.players.forEach((p,i) => { if (!p.tokenEl) return; const key = p.pos + (p.branch || ''); if (!posMap[key]) posMap[key] = []; posMap[key].push(i); });
+  S.players.forEach((p,i) => {
+    const cell = getCell(p.pos, p.branch); if (!cell || !p.tokenEl) return;
+    const key = p.pos + (p.branch || ''); const arr = posMap[key]; const idx = arr.indexOf(i);
+    const offset = arr.length > 1 ? (idx - (arr.length-1)/2) * 16 : 0;
+    p.tokenEl.style.left = (cell.x + offset) + 'px'; p.tokenEl.style.top  = (cell.y + offset) + 'px';
+    p.tokenEl.classList.toggle('turn', i === S.current && S.playing);
+  });
+  document.querySelectorAll('.cell.current').forEach(e=>e.classList.remove('current'));
+  const cur = S.players[S.current]; if (cur){ const c = getCell(cur.pos, cur.branch); if (c && c.el) c.el.classList.add('current'); }
+  updateHUD();
+}
+
+function updateHUD(){
+  const p = S.players[S.current]; if (!p) return;
+  document.getElementById('turn-info').textContent = `${p.piece} ${p.name} のターン`;
+  document.getElementById('hud-remain').textContent = `🏆 ゴールまであと ${GOAL_POS - p.pos} マス`;
+  const strip = document.getElementById('player-strip'); strip.innerHTML = '';
+  S.players.forEach((pl,i) => {
+    const c = document.createElement('div'); c.className = 'pchip' + (i===S.current?' on':''); const goods = [];
+    if (pl.principal.bond>0)  goods.push(`📜${pl.holdings.bond}円`);
+    if (pl.principal.stock>0) goods.push(`📈${pl.holdings.stock}円`);
+    if (pl.principal.coin>0)  goods.push(`🪙${pl.holdings.coin}円`);
+    if (pl.ins.fire) goods.push('🔥'); if (pl.ins.water) goods.push('🌊');
+    c.innerHTML = `<span>${pl.piece}</span><span>${pl.name}</span><span class="m">${pl.money}円</span><span style="color:#8b96c6">${goods.join(' ')}</span>`;
+    strip.appendChild(c);
+  });
+  updateRanking();
+}
+
+function updateRanking(){
+  const el = document.getElementById('ranking-panel'); if (!el) return;
+  const sorted = [...S.players].map(p => { let total = p.money + p.holdings.bond + p.holdings.stock + p.holdings.coin; if (p.result) total = p.result.finalCash; return { p, total }; }).sort((a,b) => b.total - a.total);
+  el.innerHTML = '<div class="rank-title">🏆 暫定順位</div>';
+  sorted.forEach((item, idx) => {
+    const isTurn = item.p === S.players[S.current];
+    el.innerHTML += `<div class="rank-row ${isTurn ? 'on' : ''}"><span>${idx+1}. ${item.p.piece} ${item.p.name}</span><span>${item.total}円</span></div>`;
+  });
+}
+
+const cam = { x:0, y:0, scale:0.55 }; const viewport = document.getElementById('board-viewport'); const world = document.getElementById('world');
+function applyCam(){ world.style.transform = `translate(${cam.x}px,${cam.y}px) scale(${cam.scale})`; }
+function centerOn(x, y){ cam.x = viewport.clientWidth/2 - x*cam.scale; cam.y = viewport.clientHeight/2 - y*cam.scale; applyCam(); }
+function centerOnPlayer(){ const p = S.players[S.current]; if (!p) return; const c = getCell(p.pos, p.branch); if (c) centerOn(c.x, c.y); }
+function calcInitialScale(){ const w = viewport.clientWidth; const base = w / (5.5 * SP_X); return Math.max(0.45, Math.min(1.3, base)); }
+
+let pointers = new Map(); let dragStart = null, pinchStart = null;
+viewport.addEventListener('pointerdown', e=>{
+  viewport.setPointerCapture(e.pointerId); pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if (pointers.size===1){ dragStart = { x: e.clientX - cam.x, y: e.clientY - cam.y }; pinchStart = null; }
+  else if (pointers.size===2){ const pts = [...pointers.values()]; pinchStart = { dist: Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y), scale: cam.scale, mid: { x:(pts[0].x+pts[1].x)/2, y:(pts[0].y+pts[1].y)/2 } }; dragStart = null; }
+});
+viewport.addEventListener('pointermove', e=>{
+  if (!pointers.has(e.pointerId)) return; pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if (pointers.size===1 && dragStart){ cam.x = e.clientX - dragStart.x; cam.y = e.clientY - dragStart.y; applyCam(); }
+  else if (pointers.size===2 && pinchStart){
+    const pts = [...pointers.values()]; const dist = Math.hypot(pts[0].x-pts[1].x, pts[0].y-pts[1].y);
+    const newScale = Math.max(0.3, Math.min(1.5, pinchStart.scale * (dist/pinchStart.dist)));
+    const mid = { x:(pts[0].x+pts[1].x)/2, y:(pts[0].y+pts[1].y)/2 };
+    cam.x = mid.x - (mid.x - cam.x) * (newScale/cam.scale); cam.y = mid.y - (mid.y - cam.y) * (newScale/cam.scale);
+    cam.scale = newScale; applyCam();
+  }
+});
+function endPointer(e){ pointers.delete(e.pointerId); if (pointers.size===0) dragStart = null; if (pointers.size<2) pinchStart = null; }
+viewport.addEventListener('pointerup', endPointer); viewport.addEventListener('pointercancel', endPointer);
+viewport.addEventListener('wheel', e=>{
+  e.preventDefault(); const oldScale = cam.scale; const newScale = Math.max(0.3, Math.min(1.5, oldScale * (e.deltaY>0?0.9:1.1)));
+  cam.x = e.clientX - (e.clientX - cam.x) * (newScale/oldScale); cam.y = e.clientY - (e.clientY - cam.y) * (newScale/oldScale); cam.scale = newScale; applyCam();
+}, {passive:false});
+
+const DICE_RESULT = { 1:'rotateY(720deg) rotateX(0deg)', 2:'rotateY(630deg) rotateX(0deg)', 3:'rotateY(540deg) rotateX(0deg)', 4:'rotateY(810deg) rotateX(0deg)', 5:'rotateY(720deg) rotateX(630deg)', 6:'rotateY(720deg) rotateX(810deg)' };
+async function rollDice(){
+  playSE('dice.mp3', 0.6); const layer = document.getElementById('dice-layer'); const dice = document.getElementById('dice');
+  layer.classList.add('show'); dice.style.transition = 'none'; dice.style.transform = 'rotateY(0deg) rotateX(0deg)'; dice.offsetHeight;
+  dice.style.transition = 'transform 1.6s cubic-bezier(.25,.9,.2,1)'; const value = rnd(1,6); dice.style.transform = DICE_RESULT[value];
+  await sleep(1700); layer.classList.remove('show'); return value;
+}
+
+function popup({ emoji='✨', title='', text='', comment='', buttons=[{label:'OK',value:true}] }){
+  playSE('popup.mp3', 0.3);
+  return new Promise(resolve=>{
+    const layer = document.getElementById('modal-layer'); const modal = document.getElementById('modal');
+    modal.innerHTML = `<div class="pop"><div class="em">${emoji}</div><h3>${title}</h3>${text?`<p class="txt">${text}</p>`:''}${comment?`<p class="cmt">${comment}</p>`:''}<div class="btns"></div></div>`;
+    const btns = modal.querySelector('.btns');
+    buttons.forEach(b=>{ const btn = document.createElement('button'); btn.className = 'btn' + (b.primary?' primary':''); btn.textContent = b.label; btn.onclick = ()=>{ layer.classList.remove('show'); resolve(b.value); }; btns.appendChild(btn); });
+    layer.classList.add('show');
+  });
+}
+function toast(msg){ const el = document.createElement('div'); el.className = 'toast'; el.textContent = msg; document.body.appendChild(el); setTimeout(()=>el.remove(), 1400); }
+
+async function showRules(){
+  await new Promise(resolve => {
+    const layer = document.getElementById('modal-layer'); const modal = document.getElementById('modal');
+    modal.innerHTML = `
+      <div class="pop" style="max-width: 500px;">
+        <h3 style="margin-bottom: 15px; color: #fbbf24;">🎲 あそびかた</h3>
+        <div style="max-height: 55vh; overflow-y: auto; text-align: left; font-size: 13px; line-height: 1.6; padding-right: 10px; color: #cfd8ff;">
+          <p style="margin-top:0;"><b>【目的】</b><br>200マスのすごろくを進み、ゴールした時の「総資産」を競います。</p>
+          <p><b>【マスの種類】</b><br>💰プラス/💸マイナス/🎴カード/🏦証券/🛡️保険<br>📜配当/📊相場/🌪️災害/👣移動/💤休み/🦹横取り</p>
+          <p><b>【金融商品】</b><br>証券会社で「田中国債📜」「一邦会社株📈」「ミホコイン🪙」が買えます。<br>1回の購入は「200円分」で、1回の到着で1種類のみ買えます。<br>・国債: 40マスごとに元本の20%の配当<br>・株・コイン: 相場マスで価値が変動</p>
+          <p><b>【分岐ルート】</b><br>⬅ 左ルート（🛡️安定）: プラスや証券が多く安全。<br>➡ 右ルート（🎲ギャンブル）: 相場や災害が多く危険。</p>
+          <p><b>【ゴール特典】</b><br>順位に応じて現金ボーナスと、手持ちの株・コインの評価額アップ特典があります。</p>
+        </div>
+        <div class="btns" style="margin-top: 15px;"><button class="btn primary" id="btn-close-rules">とじる</button></div>
+      </div>`;
+    layer.classList.add('show');
+    document.getElementById('btn-close-rules').onclick = () => { layer.classList.remove('show'); resolve(); };
+  });
+}
+
+async function landOn(p){
+  const cell = getCell(p.pos, p.branch); if (!cell) return; const t = cell.type;
+  if (t==='start') return; if (t==='goal') return handleGoal(p); if (t==='fork') return handleFork(p);
+  if (t==='merge') return popup({emoji:'🔗', title:'合流地点', text:'本線に戻った。'});
+  if (t==='plus') return handlePlus(p, cell); if (t==='minus') return handleMinus(p, cell); if (t==='card') return handleCard(p);
+  if (t==='sec') return handleSec(p, cell); if (t==='ins') return handleIns(p, cell); if (t==='div') return;
+  if (t==='market') return handleMarket(p, cell); if (t==='disaster') return handleDisaster(p, cell);
+  if (t==='move') return handleMove(p, cell); if (t==='rest') return handleRest(p); if (t==='steal') return handleSteal(p);
+}
+
+async function handlePlus(p, cell){
+  const v = randomAmount(p.pos, 200, 400); p.money += v; playCoin();
+  S.players.forEach(other => {
+    if (other === p || S.finished.includes(other)) return;
+    if (other.charm === 'lucky') { other.money += v; addLog(`${other.name} の福の神が +${v}円`); }
+    if (other.charm === 'unlucky') { other.money = Math.max(0, other.money - v); addLog(`${other.name} の貧乏神が -${v}円`); }
+  });
+  const txt = pick(PLUS_TXT[cell.section] || PLUS_TXT.plain);
+  await popup({emoji:'💰', title:'プラス！', text:`+${v}円`, comment: txt.replace('{v}', v)});
+  addLog(`${p.name} が +${v}円`);
+}
+async function handleMinus(p, cell){
+  const v = Math.min(randomAmount(p.pos, 100, 300), p.money);
+  if (p.curse) {
+    p.curse = false; const others = S.players.filter(x=>x!==p && !S.finished.includes(x));
+    if (others.length > 0) {
+      const target = pick(others); target.money = Math.max(0, target.money - v);
+      await popup({emoji:'🧟', title:'呪いを擦り付けた！', text:`${target.name} に -${v}円 擦り付けた！`, comment:'「これ、お前にあげる」'});
+      addLog(`${p.name} が ${target.name} に呪いを擦り付けた (-${v}円)`); return;
+    }
+  }
+  p.money -= v; playMinus(); const txt = pick(MINUS_TXT[cell.section] || MINUS_TXT.plain);
+  await popup({emoji:'💸', title:'マイナス…', text:`-${v}円`, comment: txt.replace('{v}', v)});
+  addLog(`${p.name} が -${v}円`);
+}
+async function handleSec(p, cell){
+  const items = cell.data.items;
+  if (p.money < 200) return popup({emoji:'💸', title:'お金が足りない', text:'所持金が200円未満です。また今度。'});
+  const ownedText = items.map(k => p.holdings[k]>0 ? `${ASSETS[k].emoji}${ASSETS[k].name}(${p.holdings[k]}円分)` : '').filter(Boolean).join(' ');
+  const buttons = items.map(k=>({ label:`${ASSETS[k].emoji}${ASSETS[k].name} +200円`, value:k }));
+  buttons.push({label:'買わない', value:null, primary:true});
+  const choice = await popup({ emoji:'🏦', title:'証券会社', text:`所持金: ${p.money}円<br>${ownedText?`<span style="font-size:12px;color:#9aa6d4">現在保有: ${ownedText}</span><br>`:''}どれか1つを買えます（200円）`, buttons });
+  if (!choice) return;
+  p.money -= 200; p.holdings[choice] += 200; p.principal[choice] += 200; playSE('purchase.mp3', 0.5);
+  await popup({emoji: ASSETS[choice].emoji, title:'購入完了', text:`${ASSETS[choice].name}を200円分購入しました。`});
+  addLog(`${p.name} が ${ASSETS[choice].name}を購入`);
+}
+async function handleIns(p, cell){
+  const available = cell.data.items.filter(k => !p.ins[k]);
+  if (available.length===0) return popup({emoji:'🛡️', title:'保険会社', text:'ここの保険にはすべて加入済みです。'});
+  if (p.money < 300) return popup({emoji:'💸', title:'お金が足りない', text:'所持金が300円未満です。'});
+  const buttons = available.map(k=>({ label:`${INS[k].emoji}${INS[k].name} 300円`, value:k }));
+  buttons.push({label:'加入しない', value:null});
+  const choice = await popup({ emoji:'🛡️', title:'保険会社', text:'どれか1つ加入できます（300円）', buttons });
+  if (!choice) return;
+  p.money -= 300; p.ins[choice] = true; playSE('purchase.mp3', 0.5);
+  await popup({emoji:INS[choice].emoji, title:'加入完了', text:`${INS[choice].name}に加入した。`, comment:'これで災害も怖くない…はず。'});
+  addLog(`${p.name} が ${INS[choice].name}に加入`);
+}
+async function handleMarket(p, cell){
+  const target = cell.data.target; const rate = randomRate(p.pos, target);
+  if (p.holdings[target]===0) return popup({emoji:'📊', title:'相場', text:`${ASSETS[target].name}を持っていない。影響なし。`});
+  const before = p.holdings[target]; p.holdings[target] = Math.max(0, Math.round(before * (1+rate/100)));
+  if (rate > 0) playCoin(); else playMinus();
+  const txt = rate>0 ? pick(target==='stock'?STOCK_UP:COIN_UP) : pick(target==='stock'?STOCK_DN:COIN_DN);
+  await popup({emoji:rate>0?'📈':'📉', title:'相場変動', text:`${ASSETS[target].name}: ${before}円 → ${p.holdings[target]}円`, comment: txt.replace('{v}', Math.abs(rate))});
+  addLog(`${p.name} の ${ASSETS[target].name} ${rate>0?'+':''}${rate}%`);
+}
+async function handleDisaster(p, cell){
+  const kind = cell.data.kind; const damage = randomAmount(p.pos, 150, 350); const care = Math.round(damage * 0.3);
+  playSE('disaster.mp3', 0.6);
+  if (p.ins[kind]) { p.money += care; await popup({emoji:'🛡️', title:`${INS[kind].name}で補償`, text:`${pick(kind==='fire'?DIS_FIRE:DIS_WATER)}`, comment:`保険でカバー！お見舞い金 +${care}円`}); addLog(`${p.name} が保険で ${care}円 獲得`); }
+  else { const real = Math.min(damage, p.money); p.money -= real; playMinus(); await popup({emoji:'🌪️', title:'自然災害', text: pick(kind==='fire'?DIS_FIRE:DIS_WATER), comment: `無保険で被害！ -${real}円`}); addLog(`${p.name} が災害で -${real}円`); }
+}
+async function handleMove(p, cell){
+  const {dir, dist} = cell.data;
+  await popup({emoji:'👣', title:'移動マス', text:`${dir>0?'+':'-'}${dist}マス移動！（移動先のマス効果は受けません）`});
+  addLog(`${p.name} が ${dir>0?'+':'-'}${dist}マス移動`); await movePlayer(p, dir*dist, true);
+}
+async function handleRest(p){ p.rest = 1; await popup({emoji:'💤', title:'1回休み', comment:'来世に期待。'}); addLog(`${p.name} が1回休み`); }
+async function handleSteal(p){
+  const others = S.players.filter(x => x!==p && x.money>0 && !S.finished.includes(x));
+  if (others.length===0) return popup({emoji:'🦹', title:'横取り', text:'狙う相手がいない…'});
+  const target = pick(others); const amount = Math.min(200, target.money); target.money -= amount; p.money += amount; playSE('steal.mp3', 0.6);
+  await popup({emoji:'🦹', title:'横取り成功', text:`${target.name}から ${amount}円 奪った！`, comment:`${target.name}「返して…」`});
+  addLog(`${p.name} が ${target.name} から ${amount}円横取り`);
+}
+async function handleFork(p){
+  const choice = await popup({ emoji:'🔀', title:'分岐点', text:'どちらの道に進む？<br><br><span style="color:#60a5fa">⬅ 左ルート（🛡️安定・コツコツ型）</span><br><span style="color:#f87171">右ルート（🎲一攫千金・ギャンブル型）➡</span>', buttons:[{label:'⬅ 左の道', value:'a'},{label:'右の道 ➡', value:'b'}] });
+  p.branch = choice; updateTokenPositions(); addLog(`${p.name} が ${choice==='a'?'左':'右'}ルートへ`);
+  await popup({emoji: choice==='a'?'🛡️':'🎲', title:'進路決定', text: choice==='a' ? '安全な左の道を進む。' : '危険な右の道を進む。'});
+}
+
+async function handleCard(p){
+  playSE('card.mp3', 0.5); const card = pick(CARDS); let title = 'カード', text = '', comment = card.text;
+  if (card.type==='money'){
+    const v = randomAmount(p.pos, card.min, card.max); const real = card.sign>0 ? v : Math.min(v, p.money);
+    if (card.sign>0) p.money += real; else p.money -= real; if (card.sign>0) playCoin(); else playMinus();
+    text = `${card.sign>0?'+':'-'}${real}円`; comment = card.text.replace('{v}', real);
+  } else if (card.type==='next_dice'){
+    p.nextDice = { sign: card.sign, perPip: card.perPip }; text = '次ターンの出目で精算';
+    await popup({emoji:'🎴', title, text, comment}); addLog(`${p.name} がカード：次ターン出目精算`); return;
+  } else if (card.type==='finance_change'){
+    if (p.holdings[card.target]===0){ await popup({emoji:'🎴', title, text:`${ASSETS[card.target].name}を持っていない。影響なし。`, comment:'（投資は自己責任で…）'}); addLog(`${p.name} がカード：影響なし`); return; }
+    const rate = randomRate(p.pos, card.target); p.holdings[card.target] = Math.max(0, Math.round(p.holdings[card.target] * (1+rate/100)));
+    if (rate>0) playCoin(); else playMinus(); text = `${ASSETS[card.target].name}: ${rate>0?'+':''}${rate}%`; comment = card.text.replace('{v}', Math.abs(rate));
+  } else if (card.type==='finance_gain'){
+    const v = randomAmount(p.pos, card.min, card.max); if (card.sign>0) p.holdings[card.target] += v; else p.holdings[card.target] = Math.max(0, p.holdings[card.target] - v);
+    if (card.sign>0) playCoin(); else playMinus(); text = `${ASSETS[card.target].name}: ${card.sign>0?'+':'-'}${v}円分`; comment = card.text.replace('{v}', v);
+  } else if (card.type==='steal_random'){
+    const others = S.players.filter(x=>x!==p && x.money>0 && !S.finished.includes(x));
+    if (others.length===0){ await popup({emoji:'🎴', title, text:'狙う相手がいない…'}); addLog(`${p.name} がカード：狙う相手なし`); return; }
+    const target = pick(others); const v = Math.min(randomAmount(p.pos, card.min, card.max), target.money);
+    target.money -= v; p.money += v; playSE('steal.mp3', 0.6); text = `${target.name}から ${v}円`; comment = card.text.replace('{name}', target.name).replace('{v}', v);
+    addLog(`${p.name} がカードで ${target.name} から ${v}円`);
+  } else if (card.type==='pay_random'){
+    const others = S.players.filter(x=>x!==p && !S.finished.includes(x));
+    if (others.length===0){ await popup({emoji:'🎴', title, text:'支払う相手がいない…'}); addLog(`${p.name} がカード：支払う相手なし`); return; }
+    const target = pick(others); const v = Math.min(randomAmount(p.pos, card.min, card.max), p.money);
+    p.money -= v; target.money += v; playMinus(); text = `${target.name}に ${v}円`; comment = card.text.replace('{name}', target.name).replace('{v}', v);
+    addLog(`${p.name} がカードで ${target.name} に ${v}円`);
+  } else if (card.type==='steal_all'){
+    const v = randomAmount(p.pos, card.min, card.max); let total = 0;
+    S.players.forEach(x=>{ if (x===p || S.finished.includes(x)) return; const real = Math.min(v, x.money); x.money -= real; total += real; });
+    p.money += total; playSE('steal.mp3', 0.6); text = `全員から計 ${total}円`; comment = card.text.replace('{v}', v); addLog(`${p.name} がカードで全員から ${total}円`);
+  } else if (card.type==='pay_all'){
+    const v = randomAmount(p.pos, card.min, card.max); const others = S.players.filter(x=>x!==p && !S.finished.includes(x)); let total = 0;
+    others.forEach(x=>{ const real = Math.min(v, p.money); p.money -= real; x.money += real; total += real; });
+    playMinus(); text = `全員に計 ${total}円`; comment = card.text.replace('{v}', v); addLog(`${p.name} がカードで全員に ${total}円`);
+  } else if (card.type==='lose_insurance'){
+    const insKeys = Object.keys(INS).filter(k=>p.ins[k]);
+    if (insKeys.length===0){ await popup({emoji:'🎴', title, text:'保険に入っていない。影響なし。', comment}); addLog(`${p.name} がカード：保険未加入`); return; }
+    const lost = pick(insKeys); p.ins[lost] = false; text = `${INS[lost].name}を失った`; addLog(`${p.name} がカードで ${INS[lost].name} を喪失`);
+  } else if (card.type==='disaster'){
+    const kind = card.kind; const damage = randomAmount(p.pos, 150, 350);
+    if (p.ins[kind]){ const care = Math.round(damage * 0.3); p.money += care; playCoin(); text = `保険でカバー！お見舞い金 +${care}円`; addLog(`${p.name} がカードで保険により ${care}円`); }
+    else { const real = Math.min(damage, p.money); p.money -= real; playMinus(); text = `無保険で被害！ -${real}円`; addLog(`${p.name} がカードで災害 -${real}円`); }
+  } else if (card.type==='move'){
+    await popup({emoji:'🎴', title, text: card.text, comment:'（移動先のマス効果は受けません）'}); addLog(`${p.name} がカードで ${card.dist}マス移動`); await movePlayer(p, card.dist, true); return;
+  } else if (card.type==='charm'){
+    p.charm = card.charm; text = card.charm === 'lucky' ? '福の神が憑依した！' : '貧乏神が憑依した…'; comment = card.text;
+  } else if (card.type==='curse'){
+    p.curse = true; text = '呪いのミイラを押し付けられた…'; comment = card.text;
+  } else if (card.type==='nothing'){ text = '何も起こらなかった…'; }
+  else if (card.type==='move_back_leader'){
+    const actives = S.players.filter(x=>!S.finished.includes(x));
+    if (actives.length > 0) {
+      const leader = actives.reduce((a,b)=>a.pos>b.pos?a:b, actives[0]); text = `${leader.name} が ${card.dist}マス後退！`; comment = card.text;
+      await popup({emoji:'🤧', title, text, comment}); await movePlayer(leader, -card.dist, true); addLog(`${p.name} のカードで ${leader.name} が後退`); return;
+    }
+  } else if (card.type==='finance_all_up'){
+    let cnt=0; ['bond','stock','coin'].forEach(k=>{ if (p.principal[k] > 0) { p.holdings[k] += card.amount; p.principal[k] += card.amount; cnt++; } });
+    text = cnt > 0 ? `保有金融商品がそれぞれ +${card.amount}円` : '金融商品を持っていなかった…'; if (cnt > 0) playCoin();
+  } else if (card.type==='rand_money'){
+    const isUp = Math.random() < 0.5; const opt = isUp ? card.up : card.dn; const v = randomAmount(p.pos, opt.min, opt.max); const real = opt.sign>0 ? v : Math.min(v, p.money);
+    if (opt.sign > 0) { p.money += real; playCoin(); } else { p.money -= real; playMinus(); } text = `${opt.sign>0?'+':'-'}${real}円`; comment = opt.text.replace('{v}', real);
+  } else if (card.type==='rand_pay_rest'){
+    if (Math.random() < 0.5) { const v = Math.min(randomAmount(p.pos, card.pay.min, card.pay.max), p.money); p.money -= v; playMinus(); text = `-${v}円`; comment = card.pay.text.replace('{v}', v); }
+    else { p.rest = 1; text = '1回休み'; comment = card.rest.text; }
+  } else if (card.type==='rand_money_back'){
+    if (Math.random() < 0.5) { const v = randomAmount(p.pos, card.up.min, card.up.max); p.money += v; playCoin(); text = `+${v}円`; comment = card.up.text.replace('{v}', v); }
+    else { text = '3マス戻る'; comment = card.back.text; await popup({emoji:'🎴', title, text, comment}); await movePlayer(p, -card.back.dist, true); addLog(`${p.name} がカードで3マス戻る`); return; }
+  } else if (card.type==='rand_triple'){
+    const r = Math.random();
+    if (r < 0.33) { const o = card.opt1; const v = Math.min(randomAmount(p.pos, o.min, o.max), p.money); p.money -= v; playMinus(); text = `-${v}円`; comment = o.text.replace('{v}', v); }
+    else if (r < 0.66) { p.rest = 1; text = '1回休み'; comment = card.opt2.text; }
+    else { const o = card.opt3; const v = randomAmount(p.pos, o.min, o.max); let total = 0; S.players.forEach(x=>{ if (x===p || S.finished.includes(x)) return; const real = Math.min(v, x.money); x.money -= real; total += real; }); p.money += total; playCoin(); text = `全員から計 ${total}円`; comment = o.text.replace('{v}', v); }
+  }
+  await popup({emoji:'🎴', title, text, comment}); addLog(`${p.name} がカード：${text}`);
+}
+
+async function handleGoal(p){
+  playSE('fanfare.mp3', 0.7); S.finished.push(p); const rank = S.finished.length;
+  const rewardTable = [{money:3000, rate:0.30}, {money:2000, rate:0.30}, {money:2000, rate:0.20}, {money:1000, rate:0.10}, {money:0, rate:1.00}];
+  const r = rewardTable[Math.min(rank-1, rewardTable.length-1)]; let finalStock = p.holdings.stock; let finalCoin  = p.holdings.coin;
+  if (r.rate > 0) { finalStock = Math.round(finalStock * (1 + r.rate)); finalCoin  = Math.round(finalCoin  * (1 + r.rate)); }
+  const bondV  = p.principal.bond; const financeTotal = bondV + finalStock + finalCoin; const finalCash = p.money + r.money + financeTotal;
+  p.result = { rank, cashBefore:p.money, bondV, stockV:finalStock, coinV:finalCoin, financeTotal, rewardMoney:r.money, rewardRate:r.rate, finalCash };
+  await popup({ emoji:'🏆', title:`ゴール！ ${rank}位`, text:`おつかれさま！`, comment:`手持ち ${p.money}円 ／ 金融商品 ${financeTotal}円 ／ 特典 +${r.money}円<br>${r.rate>0?`（株・コイン評価額 +${r.rate*100}%増し）`:''}`, buttons:[{label:'OK', value:true, primary:true}] });
+  addLog(`🏆 ${p.name} がゴール！ (${rank}位)`); if (S.finished.length === S.players.length) await showResults();
+}
+
+async function showResults(){
+  const layer = document.getElementById('result-layer'); const titleEl = document.getElementById('result-title'); const tableEl = document.getElementById('result-table'); const footerEl = document.getElementById('result-footer');
+  function renderTable(list, showFinal){
+    tableEl.innerHTML = '';
+    list.forEach((p, idx) => {
+      const r = p.result; const isFirst = showFinal && idx===0; const div = document.createElement('div');
+      div.className = 'result-row' + (isFirst?' first':''); div.style.animationDelay = (idx*0.08)+'s';
+      const rankLabel = showFinal ? (idx+1)+'位' : r.rank+'位';
+      div.innerHTML = `
+        <div class="res-rank">${rankLabel}</div><div class="res-name">${p.piece} ${p.name}</div>
+        <div class="res-col"><span>手持ち</span><b>${r.cashBefore}円</b></div>
+        <div class="res-col"><span>金融</span><b>${r.financeTotal}円</b></div>
+        <div class="res-col"><span>特典</span><b>${showFinal ? '+'+r.rewardMoney+'円' : '???'}</b></div>
+        <div class="res-col"><span>金融特典</span><b>${showFinal ? (r.rewardRate>0?'+'+Math.round(r.rewardRate*100)+'%':'−') : '???'}</b></div>
+        <div class="res-total${showFinal?' plus':''}">${showFinal ? r.finalCash+'円' : '???'}</div>
+      `;
+      tableEl.appendChild(div);
+    });
+  }
+  titleEl.textContent = 'GOAL ORDER'; footerEl.innerHTML = '<div style="color:#9aa6d4;font-size:13px">5秒後に最終結果を発表…</div>';
+  renderTable(S.finished, false); layer.classList.add('show'); await sleep(5000);
+  titleEl.textContent = 'FINAL RESULT'; footerEl.innerHTML = '<div style="color:#fbbf24;font-size:18px;font-weight:800">ジャガジャガジャーン！</div>';
+  layer.classList.add('flash'); playFanfare(); await sleep(600); layer.classList.remove('flash');
+  const finalOrder = [...S.finished].sort((a,b)=> b.result.finalCash - a.result.finalCash);
+  renderTable(finalOrder, true); await sleep(800); footerEl.innerHTML = '';
+  const btn = document.createElement('button'); btn.className = 'btn primary'; btn.textContent = 'タイトルへもどる'; btn.style.padding = '14px 40px';
+  btn.onclick = ()=>{ layer.classList.remove('show'); try { localStorage.removeItem(SAVE_KEY); } catch(e){} S.playing = false; document.getElementById('scr-game').classList.remove('active'); document.getElementById('scr-title').classList.add('active'); checkContinue(); };
+  footerEl.appendChild(btn);
+}
+
+function playFanfare(){
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)(); const notes = [523.25, 659.25, 783.99, 1046.50];
+    notes.forEach((freq, i)=>{
+      const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.type = 'triangle'; osc.frequency.value = freq;
+      const t = ctx.currentTime + i*0.12; gain.gain.setValueAtTime(0, t); gain.gain.linearRampToValueAtTime(0.3, t+0.02); gain.gain.exponentialRampToValueAtTime(0.001, t+0.3);
+      osc.connect(gain); gain.connect(ctx.destination); osc.start(t); osc.stop(t+0.35);
+    });
+  } catch(e){}
+}
+
+async function movePlayer(p, steps, silent=false){
+  if (steps === 0) return; const dir = Math.sign(steps); const count = Math.abs(steps); let totalDiv = 0;
+  for (let i=0;i<count;i++){
+    if (p.pos===80 && !p.branch) break;
+    const oldPos = p.pos; let newPos = p.pos + dir;
+    if (oldPos===80 && p.branch===null && dir>0) newPos = 81;
+    if (p.branch && newPos===106) p.branch = null;
+    if (newPos > GOAL_POS) newPos = GOAL_POS; if (newPos < 0) newPos = 0;
+    p.pos = newPos;
+    const oldSec = sectionOf(oldPos), newSec = sectionOf(newPos);
+    if (oldSec !== newSec && SECTION_INFO[newSec]) toast(SECTION_INFO[newSec].label + ' に入った');
+    const oldDiv = Math.floor(oldPos/40), newDiv = Math.floor(newPos/40);
+    if (newDiv > oldDiv && p.pos>0){
+      const divAmount = Math.round(p.principal.bond * 0.20);
+      if (divAmount > 0) { p.money += divAmount; totalDiv += divAmount; addLog(`${p.name} が国債配当 +${divAmount}円`); }
+    }
+    updateTokenPositions(); await sleep(170);
+    if (p.pos === GOAL_POS) break; if (p.pos === 80 && dir>0) break;
+  }
+  if (totalDiv > 0) { playCoin(); await popup({emoji: '📜', title: '国債配当', text: `40マス通過ボーナス！<br>合計 +${totalDiv}円 獲得`, comment: '国債を持っていてよかった…'}); }
+  centerOnPlayer();
+}
+
+async function applyMisogin(p){
+  if (p.pos===0 || p.pos===200 || S.finished.includes(p)) return;
+  const others = S.players.filter(x => x!==p && x.pos===p.pos && x.branch===p.branch && !S.finished.includes(x));
+  if (others.length===0) return;
+  const amount = randomAmount(p.pos, 50, 150); const total  = amount * others.length; const real   = Math.min(total, p.money);
+  p.money -= real; const per = Math.floor(real / others.length); others.forEach(o => o.money += per); playSE('steal.mp3', 0.6);
+  await popup({ emoji:'😈', title:'カツアゲ', text:`先にいた ${others.map(o=>o.name).join('・')} に ${real}円 カツアゲされた！`, comment: others.length>1 ? '「ここは俺たちの縄張りだ」' : '「通行料だ、出せ」' });
+  addLog(`${p.name} がカツアゲされ -${real}円`);
+}
+
+async function doTurn(){
+  if (!S.playing) return; const p = S.players[S.current]; if (!p) return;
+  p.charm = null;
+  if (p.rest > 0){ p.rest--; document.getElementById('btn-roll').disabled = true; await popup({emoji:'💤', title:'お休み', text:`${p.name}は休んでいる…`}); endTurn(); return; }
+  document.getElementById('btn-roll').disabled = true; const dice = await rollDice();
+  if (p.nextDice){
+    const v = dice * p.nextDice.perPip;
+    if (p.nextDice.sign > 0){ p.money += v; playCoin(); await popup({emoji:'🎲', title:'出目ボーナス', text:`出目 ${dice} × ${p.nextDice.perPip}円 = +${v}円`}); addLog(`${p.name} がカード精算で +${v}円`); }
+    else { const real = Math.min(v, p.money); p.money -= real; playMinus(); await popup({emoji:'🎲', title:'出目ペナルティ', text:`出目 ${dice} × ${p.nextDice.perPip}円 = -${real}円`}); addLog(`${p.name} がカード精算で -${real}円`); }
+    p.nextDice = null;
+  }
+  await movePlayer(p, dice); await applyMisogin(p); await landOn(p);
+  if (Math.random() < 0.10) await randomEvent(); endTurn();
+}
+
+async function randomEvent(){
+  playSE('event.mp3', 0.6);
+  const events = [
+    async ()=>{ const v = randomAmount(rnd(0,200), 200, 400); S.players.forEach(p=>p.money+=v); await popup({emoji:'⚠️', title:'突然の臨時収入', text:`全員に +${v}円`, comment:'デデが「これあげる」と全員に配った。理由は不明。'}); addLog(`イベント:全員 +${v}円`); },
+    async ()=>{ const v = randomAmount(rnd(0,200), 150, 300); S.players.forEach(p=>p.money=Math.max(0,p.money-v)); await popup({emoji:'⚠️', title:'突然の出費', text:`全員 -${v}円`, comment:'謎の会費が徴収された。'}); addLog(`イベント:全員 -${v}円`); },
+    async ()=>{ const rate = rnd(10,25); S.players.forEach(p=>{ if(p.holdings.stock>0) p.holdings.stock=Math.round(p.holdings.stock*(1+rate/100)); }); await popup({emoji:'📈', title:'相場イベント', text:`株 全体 +${rate}%`, comment:'一邦会社に好材料。'}); addLog(`イベント:株 +${rate}%`); },
+    async ()=>{ const rate = rnd(10,25); S.players.forEach(p=>{ if(p.holdings.stock>0) p.holdings.stock=Math.max(0,Math.round(p.holdings.stock*(1-rate/100))); }); await popup({emoji:'📉', title:'相場イベント', text:`株 全体 -${rate}%`, comment:'一邦会社に不祥事。'}); addLog(`イベント:株 -${rate}%`); },
+    async ()=>{ const rate = rnd(20,50); S.players.forEach(p=>{ if(p.holdings.coin>0) p.holdings.coin=Math.round(p.holdings.coin*(1+rate/100)); }); await popup({emoji:'🪙', title:'相場イベント', text:`コイン 全体 +${rate}%`, comment:'ミホコインが上場。'}); addLog(`イベント:コイン +${rate}%`); },
+    async ()=>{ const rate = rnd(20,50); S.players.forEach(p=>{ if(p.holdings.coin>0) p.holdings.coin=Math.max(0,Math.round(p.holdings.coin*(1-rate/100))); }); await popup({emoji:'💥', title:'相場イベント', text:`コイン 全体 -${rate}%`, comment:'ミホコインの開発者が行方不明。'}); addLog(`イベント:コイン -${rate}%`); },
+    async ()=>{ const v = randomAmount(100, 200, 400); let msg=''; S.players.forEach(p=>{ if (!p.ins.fire){ const r=Math.min(v,p.money); p.money-=r; msg+=`${p.name} -${r}円 `; } else { const c=Math.round(v*0.3); p.money+=c; msg+=`${p.name} +${c}円 `; } }); await popup({emoji:'🔥', title:'大規模火災', text:msg, comment:'火災保険の有無で明暗が分かれた。'}); addLog(`イベント:大規模火災`); },
+    async ()=>{ const v = randomAmount(100, 200, 400); let msg=''; S.players.forEach(p=>{ if (!p.ins.water){ const r=Math.min(v,p.money); p.money-=r; msg+=`${p.name} -${r}円 `; } else { const c=Math.round(v*0.3); p.money+=c; msg+=`${p.name} +${c}円 `; } }); await popup({emoji:'🌀', title:'超巨大台風', text:msg, comment:'水害保険の有無で明暗が分かれた。'}); addLog(`イベント:超巨大台風`); },
+    async ()=>{ const shuffled = shuffle([...S.players.filter(p=>!S.finished.includes(p))]); const a = shuffled[0], b = shuffled[1]; if (!a || !b) return; const v = randomAmount(100, 200, 400); const real = Math.min(v, b.money); b.money -= real; a.money += real; await popup({emoji:'⚠️', title:'突然のバトル', text:`${a.name} が ${b.name} から ${real}円 奪った！`, comment:'なぜか殴り合いになった。'}); addLog(`イベント:${a.name}が${b.name}から強奪`); },
+    async ()=>{ S.players.forEach(p=>{ p.pos=Math.max(0,p.pos-3); if (p.pos<81||p.pos>105) p.branch=null; }); updateTokenPositions(); await popup({emoji:'⚠️', title:'時空のゆがみ', text:'全員 3マス戻る', comment:'なぜか時間が巻き戻った。'}); addLog(`イベント:全員3マス戻る`); },
+    async ()=>{ 
+      const kind = rnd(1,3);
+      if (kind===1) { const v = randomAmount(rnd(0,200), 200, 400); S.players.forEach(p=>p.money+=v); await popup({emoji:'⛏️', title:'ピノがここ掘れと言っている', text:`全員 +${v}円`, comment:'掘ったら出てきた。ピノは天才かもしれない。'}); addLog(`イベント:ピノのお宝 +${v}円`); }
+      else if (kind===2) { const v = randomAmount(rnd(0,200), 200, 400); S.players.forEach(p=>{ p.holdings.coin += v; p.principal.coin += v; }); await popup({emoji:'🪙', title:'ピノがここ掘れと言っている', text:`全員 コイン +${v}円分`, comment:'土の中からミホコインが出てきた。なぜ？'}); addLog(`イベント:ピノのコイン +${v}円分`); }
+      else { const v = randomAmount(rnd(0,200), 200, 400); S.players.forEach(p=>p.money=Math.max(0,p.money-v)); await popup({emoji:'🐸', title:'ピノがここ掘れと言っている', text:`全員 -${v}円`, comment:'カエルが出てきて驚いてお金を落とした。'}); addLog(`イベント:ピノとカエル -${v}円`); }
+    },
+    async ()=>{ 
+      if (Math.random()<0.5) { const v = randomAmount(rnd(0,200), 200, 400); S.players.forEach(p=>p.money=Math.max(0,p.money-v)); await popup({emoji:'⚔️', title:'ピノとモルが小競り合い', text:`全員 -${v}円`, comment:'近所迷惑料を支払わされた。'}); addLog(`イベント:ピノとモル -${v}円`); }
+      else { const v = randomAmount(rnd(0,200), 200, 400); S.players.forEach(p=>{ p.holdings.stock += v; p.principal.stock += v; }); await popup({emoji:'📜', title:'ピノとモルが小競り合い', text:`全員 株 +${v}円分`, comment:'戸棚からヘソクリの株証書が見つかった。'}); addLog(`イベント:ピノとモルのヘソクリ +${v}円分`); }
+    },
+    async ()=>{ const v = randomAmount(rnd(0,200), 200, 400); S.players.forEach(p=>p.money=Math.max(0,p.money-v)); await popup({emoji:'🏔️', title:'一邦のクラウドファンディング', text:`全員 -${v}円`, comment:'キリマンジャロ登山の支援と称して集められた。'}); addLog(`イベント:一邦のCF -${v}円`); },
+    async ()=>{ const v = randomAmount(rnd(0,200), 300, 600); S.players.forEach(p=>p.money+=v); await popup({emoji:'📈', title:'ミホコの大儲け', text:`全員 +${v}円`, comment:'ミホコが株で大儲けして、みんなにおすそ分けしてくれた。'}); addLog(`イベント:ミホコのおすそ分け +${v}円`); }
+  ];
+  await pick(events)();
+}
+
+function endTurn(){
+  saveGame(); if (S.finished.length === S.players.length) return;
+  do { S.current = (S.current+1) % S.players.length; } while (S.finished.includes(S.players[S.current]));
+  updateTokenPositions(); centerOnPlayer(); document.getElementById('btn-roll').disabled = false;
+}
+
+function saveGame(){
+  if (!S.playing) return;
+  const data = { players: S.players.map(p=>({ name:p.name, piece:p.piece, color:p.color, money:p.money, pos:p.pos, branch:p.branch, holdings:p.holdings, principal:p.principal, ins:p.ins, rest:p.rest, nextDice: p.nextDice || null, charm: p.charm || null, curse: p.curse || false })), current: S.current, finishedNames: S.finished.map(p=>p.name), logs: logs };
+  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch(e){}
+}
+function loadGame(){
+  let raw; try { raw = localStorage.getItem(SAVE_KEY); } catch(e){ return false; }
+  if (!raw) return false;
+  try {
+    const data = JSON.parse(raw);
+    S.players = data.players.map(d=>({ ...d, tokenEl: null, principal: d.principal || { bond:0, stock:0, coin:0 }, nextDice: d.nextDice || null, charm: d.charm || null, curse: d.curse || false }));
+    S.current = data.current; S.finished = S.players.filter(p => data.finishedNames.includes(p.name)); logs = data.logs || ['ゲーム再開！']; S.cells = makeCells(); return true;
+  } catch(e){ return false; }
+}
+function checkContinue(){ const btn = document.getElementById('btn-continue'); try { btn.disabled = !localStorage.getItem(SAVE_KEY); } catch(e){ btn.disabled = true; } }
+
+async function startGame(){
+  S.cells = makeCells(); S.finished = []; S.playing = true; logs = ['ゲームスタート！'];
+  document.getElementById('scr-game').classList.add('active');
+  document.getElementById('scr-game').style.display = 'block'; // 画面表示を強制
+  render(); cam.scale = calcInitialScale(); centerOnPlayer();
+  document.getElementById('btn-roll').disabled = false; updateHUD();
+  const p = S.players[0];
+  await popup({emoji:p.piece, title:`${p.name} のターン`, text:`スタート！所持金 ${p.money}円`, comment:'ゴール目指してがんばろう。'});
+}
+
+let setupCount = 4; let setupPlayers = []; let usedPieces = [];
+function initSetup(){ setupPlayers = []; for (let i=0;i<5;i++){ setupPlayers.push({ name:'プレイヤー'+(i+1), piece:PIECES[i], color:COLORS[i] }); } renderSetup(); }
+function renderSetup(){
+  const countEl = document.getElementById('player-count'); countEl.innerHTML = '';
+  for (let n=2;n<=5;n++){ const b = document.createElement('button'); b.textContent = n; if (n===setupCount) b.classList.add('on'); b.onclick = ()=>{ setupCount = n; renderSetup(); }; countEl.appendChild(b); }
+  const wrap = document.getElementById('player-inputs'); wrap.innerHTML = ''; usedPieces = setupPlayers.slice(0,setupCount).map(p=>p.piece);
+  for (let i=0;i<setupCount;i++){
+    const pl = setupPlayers[i]; const div = document.createElement('div'); div.className = 'pinput';
+    div.innerHTML = `<div class="dot" style="background:${pl.color}"></div><input type="text" maxlength="10" value="${pl.name}" placeholder="名前"><div class="pieces"></div>`;
+    div.querySelector('input').oninput = e => { pl.name = e.target.value; };
+    const piecesEl = div.querySelector('.pieces');
+    PIECES.forEach(piece=>{ const b = document.createElement('button'); b.textContent = piece; const taken = usedPieces.includes(piece) && piece !== pl.piece; if (taken) b.disabled = true; if (piece === pl.piece) b.classList.add('on'); b.onclick = ()=>{ pl.piece = piece; renderSetup(); }; piecesEl.appendChild(b); });
+    wrap.appendChild(div);
+  }
+}
+
+document.getElementById('btn-new').onclick = ()=>{ startBGM(); try { localStorage.removeItem(SAVE_KEY); } catch(e){} document.getElementById('scr-title').style.display = 'none'; document.getElementById('scr-setup').style.display = 'flex'; initSetup(); };
+document.getElementById('btn-rules').onclick = ()=>{ startBGM(); showRules(); };
+document.getElementById('btn-continue').onclick = async ()=>{ 
+  startBGM(); 
+  if (!loadGame()) return; 
+  S.playing = true; 
+  document.getElementById('scr-title').classList.remove('active'); 
+  document.getElementById('scr-game').classList.add('active'); 
+  document.getElementById('scr-game').style.display = 'block'; // 画面表示を強制
+  render(); cam.scale = calcInitialScale(); centerOnPlayer(); 
+  updateHUD(); document.getElementById('btn-roll').disabled = false; 
+  const p = S.players[S.current]; 
+  await popup({emoji:'💾', title:'つづきから', text:`${p.name}のターンから再開します。`}); 
+};
+document.getElementById('btn-back').onclick = ()=>{ document.getElementById('scr-setup').style.display = 'none'; document.getElementById('scr-title').style.display = 'flex'; document.getElementById('scr-title').classList.add('active'); };
+document.getElementById('btn-start').onclick = ()=>{
+  S.players = setupPlayers.slice(0,setupCount).map(p=>({
+    name: p.name.trim() || 'プレイヤー', piece: p.piece, color: p.color, money: START_MONEY, pos: 0, branch: null,
+    holdings: { bond:0, stock:0, coin:0 }, principal: { bond:0, stock:0, coin:0 }, ins: { fire:false, water:false }, rest: 0, nextDice: null, charm: null, curse: false
+  }));
+  S.current = 0; document.getElementById('scr-setup').style.display = 'none'; startGame();
+};
+document.getElementById('btn-roll').onclick = ()=>{ startBGM(); doTurn(); };
+document.getElementById('btn-recenter').onclick = ()=>centerOnPlayer();
+document.getElementById('btn-bgm').onclick = toggleBGM;
+document.getElementById('btn-bgm-title').onclick = toggleBGM;
+document.getElementById('btn-status').onclick = async ()=>{
+  const p = S.players[S.current]; if (!p) return;
+  const goods = [
+    p.principal.bond>0  ? `📜${ASSETS.bond.name}<br>　評価額: ${p.holdings.bond}円 (元本: ${p.principal.bond}円)` : '',
+    p.principal.stock>0 ? `📈${ASSETS.stock.name}<br>　評価額: ${p.holdings.stock}円 (元本: ${p.principal.stock}円)` : '',
+    p.principal.coin>0  ? `🪙${ASSETS.coin.name}<br>　評価額: ${p.holdings.coin}円 (元本: ${p.principal.coin}円)` : '',
+    p.ins.fire ? '🔥火災保険 加入済み' : '', p.ins.water ? '🌊水害保険 加入済み' : '',
+    p.charm === 'lucky' ? '🍀福の神が憑依中！' : '', p.charm === 'unlucky' ? '☔貧乏神が憑依中…' : '',
+    p.curse ? '🧟呪いのミイラを持っている' : ''
+  ].filter(Boolean).join('<br>') || 'なし';
+  await popup({emoji:p.piece, title:p.name, text:`💰 所持金: ${p.money}円<br>🏆 ゴールまで: ${GOAL_POS-p.pos}マス<br>📦 保有商品:<br>${goods}`});
+};
+
+checkContinue();
+</script>
+</body>
+</html>
