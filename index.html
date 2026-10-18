@@ -30,7 +30,7 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0b1020;color:#e8ecff;
 
 /* 盤面 */
 #scr-game{display:none}
-#scr-game.active{display:block} /* ここが重要：ゲーム画面の表示 */
+#scr-game.active{display:block}
 #board-viewport{position:absolute;inset:0;overflow:hidden;touch-action:none;background:#07080f;background-image:radial-gradient(circle at 50% 30%, #0d1430 0%, #07080f 80%),radial-gradient(#121a33 1px,transparent 1px);background-size:auto, 34px 34px}
 #world{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform}
 #sections{position:absolute;left:0;top:0;pointer-events:none;z-index:0}
@@ -56,16 +56,20 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0b1020;color:#e8ecff;
 #hud-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:10px 12px;pointer-events:none;z-index:10}
 #turn-info{background:#131a35ee;border:1px solid #2c3766;border-radius:12px;padding:7px 13px;font-size:13px;font-weight:700;pointer-events:auto}
 #hud-btns{display:flex;gap:8px;pointer-events:auto}#hud-btns button{width:42px;height:42px;border-radius:12px;border:1px solid #2c3766;background:#131a35ee;color:#cfd8ff;font-size:18px;cursor:pointer}
-#hud-remain{position:absolute;left:12px;bottom:112px;background:#131a35ee;border:1px solid #2c3766;border-radius:12px;padding:6px 13px;font-size:12px;color:#9aa6d4;z-index:10}
-#log-panel{position:absolute;left:12px;bottom:160px;width:250px;background:#131a35dd;border:1px solid #2c3766;border-radius:12px;padding:6px 10px;font-size:11px;z-index:10;pointer-events:none;}
+#hud-remain{position:absolute;left:12px;bottom:130px;background:#131a35ee;border:1px solid #2c3766;border-radius:12px;padding:6px 13px;font-size:12px;color:#9aa6d4;z-index:10}
+
+#log-panel{position:absolute;left:12px;bottom:180px;width:250px;background:#131a35dd;border:1px solid #2c3766;border-radius:12px;padding:6px 10px;font-size:11px;z-index:10;pointer-events:none;}
 #log-panel .log-title{font-size:10px;color:#8b96c6;margin-bottom:4px}#log-list div{color:#cfd8ff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.5}
-#ranking-panel{position:absolute;right:12px;top:60px;width:160px;background:#131a35dd;border:1px solid #2c3766;border-radius:12px;padding:6px;font-size:11px;z-index:10;pointer-events:none;}
-#ranking-panel .rank-title{text-align:center;color:#8b96c6;margin-bottom:4px;font-size:10px}
-.rank-row{display:flex;justify-content:space-between;padding:2px 4px;border-radius:4px;margin-bottom:2px;color:#cfd8ff}.rank-row.on{background:#2a2410;border:1px solid #fbbf24;color:#fbbf24;font-weight:700}
 
 #hud-bottom{position:absolute;left:0;right:0;bottom:0;padding:8px 12px 14px;background:linear-gradient(transparent,#0b1020dd 30%);z-index:10}
-#player-strip{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}#player-strip::-webkit-scrollbar{display:none}
-.pchip{flex:0 0 auto;display:flex;align-items:center;gap:6px;background:#131a35ee;border:1px solid #2c3766;border-radius:12px;padding:5px 10px;font-size:12px}.pchip.on{border-color:#fbbf24;background:#2a2410ee}.pchip .m{font-weight:700;color:#7dd3fc}
+#player-strip{display:grid;grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));gap:6px;padding-bottom:8px;width:100%;max-height:120px;overflow-y:auto}
+.pchip{display:flex;flex-direction:column;background:#131a35ee;border:1px solid #2c3766;border-radius:12px;padding:6px 8px;font-size:12px;gap:2px}
+.pchip.on{border-color:#fbbf24;background:#2a2410ee}
+.pchip .rank{font-size:10px;color:#fbbf24;font-weight:bold}
+.pchip .top-row{display:flex;justify-content:space-between;align-items:center;font-weight:bold;font-size:13px}
+.pchip .m{color:#7dd3fc}
+.pchip .goods{font-size:10px;color:#8b96c6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
 #btn-roll{display:block;width:100%;padding:15px;font-size:17px;font-weight:800;border:none;border-radius:16px;background:linear-gradient(180deg,#4f7cff,#3355d6);color:#fff;box-shadow:0 5px 0 #22307a;cursor:pointer}
 #btn-roll:disabled{background:#242c4e;color:#5b638a;box-shadow:0 5px 0 #161c33;cursor:default}#btn-roll:active:not(:disabled){transform:translateY(3px);box-shadow:0 2px 0 #22307a}
 
@@ -131,7 +135,6 @@ html,body{margin:0;height:100%;overflow:hidden;background:#0b1020;color:#e8ecff;
       </div>
     </header>
     <div id="hud-remain"></div>
-    <div id="ranking-panel"></div>
     <div id="log-panel"><div class="log-title">📝 プレイログ</div><div id="log-list"></div></div>
     <footer id="hud-bottom">
       <div id="player-strip"></div>
@@ -237,7 +240,11 @@ const shuffle = a => { const b=[...a]; for(let i=b.length-1;i>0;i--){const j=Mat
 const rnd = (min,max) => min + Math.floor(Math.random()*(max-min+1));
 const sleep = ms => new Promise(r=>setTimeout(r,ms));
 function sectionOf(pos) { return pos<40?'plain':pos<80?'port':pos<107?'fork':pos<150?'mine':'volcano'; }
-function randomAmount(pos, minBase, maxBase) { const mult = 1 + (pos/200)*1.5; return Math.round(rnd(minBase, maxBase)*mult/10)*10; }
+function randomAmount(pos, minBase, maxBase) { 
+  // インフレ率の緩和（最大2.5倍→最大2.0倍）
+  const mult = 1 + (pos/200)*1.0; 
+  return Math.round(rnd(minBase, maxBase)*mult/10)*10; 
+}
 function randomRate(pos, target) {
   const ratio = pos/200; const isStock = target==='stock'; const baseMin = isStock?5:10, baseMax = isStock?15:30;
   const minAbs = Math.round(baseMin + ratio*baseMin), maxAbs = Math.round(baseMax + ratio*baseMax);
@@ -272,11 +279,21 @@ function makeCells(){
 }
 
 function assignTypes(cells){
-  function wrand(path){
+  function wrand(path, pos){
     let w;
-    if (path === 'a') w = { plus:35, minus:5,  card:15, sec:25, ins:10, market:5,  disaster:0,  move:3, rest:1, steal:1 };
-    else if (path === 'b') w = { plus:25, minus:10, card:5,  sec:20, ins:5,  market:30, disaster:3,  move:2, rest:0, steal:0 };
-    else w = { plus:25, minus:10, card:10, sec:25, ins:5, market:10, disaster:5,  move:4, rest:3, steal:3 };
+    if (path === 'a') {
+      w = { plus:35, minus:5,  card:15, sec:25, ins:10, market:5,  disaster:0,  move:3, rest:1, steal:1 };
+    } else if (path === 'b') {
+      // ギャンブルルート：プラスを減らし、マイナスを増やしてリスクを高める
+      w = { plus:15, minus:20, card:10, sec:15, ins:5,  market:30, disaster:5,  move:2, rest:0, steal:0 };
+    } else {
+      // メインルート：107マス以降はプラスを減らし、カードを増やす
+      if (pos >= 107) {
+        w = { plus:15, minus:15, card:20, sec:25, ins:5, market:10, disaster:5, move:3, rest:2, steal:0 };
+      } else {
+        w = { plus:25, minus:10, card:10, sec:25, ins:5, market:10, disaster:5, move:4, rest:3, steal:3 };
+      }
+    }
     const total = Object.values(w).reduce((a,b)=>a+b,0); let r = Math.random()*total, acc=0;
     for (let k in w){ acc+=w[k]; if (r<acc) return k; } return 'plus';
   }
@@ -288,7 +305,7 @@ function assignTypes(cells){
       if (cell.merge) { cell.type='merge'; cell.section='fork'; continue; }
       if (pos===0)    { cell.type='start'; cell.section='plain'; continue; }
       if (pos===200)  { cell.type='goal';  cell.section='volcano'; continue; }
-      if (k==='main' && divSet.has(pos)) cell.type = 'div'; else cell.type = wrand(k);
+      if (k==='main' && divSet.has(pos)) cell.type = 'div'; else cell.type = wrand(k, pos);
       cell.section = sectionOf(pos);
       if (cell.type==='sec') cell.data = { items: shuffle(['bond','stock','coin']).slice(0, Math.random()<0.5?3:2) };
       if (cell.type==='ins') cell.data = { items: Math.random()<0.5 ? ['fire','water'] : [pick(['fire','water'])] };
@@ -361,26 +378,32 @@ function updateHUD(){
   const p = S.players[S.current]; if (!p) return;
   document.getElementById('turn-info').textContent = `${p.piece} ${p.name} のターン`;
   document.getElementById('hud-remain').textContent = `🏆 ゴールまであと ${GOAL_POS - p.pos} マス`;
+  
+  const sorted = [...S.players].map(pl => {
+    let total = pl.money + pl.holdings.bond + pl.holdings.stock + pl.holdings.coin;
+    if (pl.result) total = pl.result.finalCash;
+    return { player: pl, total };
+  }).sort((a,b) => b.total - a.total);
+  sorted.forEach((item, idx) => { item.player.rank = idx + 1; });
+
   const strip = document.getElementById('player-strip'); strip.innerHTML = '';
   S.players.forEach((pl,i) => {
-    const c = document.createElement('div'); c.className = 'pchip' + (i===S.current?' on':''); const goods = [];
-    if (pl.principal.bond>0)  goods.push(`📜${pl.holdings.bond}円`);
-    if (pl.principal.stock>0) goods.push(`📈${pl.holdings.stock}円`);
-    if (pl.principal.coin>0)  goods.push(`🪙${pl.holdings.coin}円`);
+    const c = document.createElement('div'); 
+    c.className = 'pchip' + (i===S.current?' on':''); const goods = [];
+    if (pl.principal.bond>0)  goods.push(`📜${pl.holdings.bond}`);
+    if (pl.principal.stock>0) goods.push(`📈${pl.holdings.stock}`);
+    if (pl.principal.coin>0)  goods.push(`🪙${pl.holdings.coin}`);
     if (pl.ins.fire) goods.push('🔥'); if (pl.ins.water) goods.push('🌊');
-    c.innerHTML = `<span>${pl.piece}</span><span>${pl.name}</span><span class="m">${pl.money}円</span><span style="color:#8b96c6">${goods.join(' ')}</span>`;
+    
+    c.innerHTML = `
+      <div class="rank">🏆 ${pl.rank}位</div>
+      <div class="top-row">
+        <span>${pl.piece} ${pl.name}</span>
+        <span class="m">${pl.money}円</span>
+      </div>
+      <div class="goods">${goods.join(' ') || '金融なし'}</div>
+    `;
     strip.appendChild(c);
-  });
-  updateRanking();
-}
-
-function updateRanking(){
-  const el = document.getElementById('ranking-panel'); if (!el) return;
-  const sorted = [...S.players].map(p => { let total = p.money + p.holdings.bond + p.holdings.stock + p.holdings.coin; if (p.result) total = p.result.finalCash; return { p, total }; }).sort((a,b) => b.total - a.total);
-  el.innerHTML = '<div class="rank-title">🏆 暫定順位</div>';
-  sorted.forEach((item, idx) => {
-    const isTurn = item.p === S.players[S.current];
-    el.innerHTML += `<div class="rank-row ${isTurn ? 'on' : ''}"><span>${idx+1}. ${item.p.piece} ${item.p.name}</span><span>${item.total}円</span></div>`;
   });
 }
 
@@ -492,10 +515,28 @@ async function handleMinus(p, cell){
 async function handleSec(p, cell){
   const items = cell.data.items;
   if (p.money < 200) return popup({emoji:'💸', title:'お金が足りない', text:'所持金が200円未満です。また今度。'});
+  
+  // 一番保有額が少ない商品を探す
+  let minAsset = null;
+  let minAmount = Infinity;
+  items.forEach(k => {
+    if (p.holdings[k] < minAmount) { minAmount = p.holdings[k]; minAsset = k; }
+  });
+
   const ownedText = items.map(k => p.holdings[k]>0 ? `${ASSETS[k].emoji}${ASSETS[k].name}(${p.holdings[k]}円分)` : '').filter(Boolean).join(' ');
-  const buttons = items.map(k=>({ label:`${ASSETS[k].emoji}${ASSETS[k].name} +200円`, value:k }));
+  
+  // オススメマークの付与
+  const buttons = items.map(k => {
+    const recMark = (k === minAsset) ? '⭐️' : '';
+    return { label: `${recMark}${ASSETS[k].emoji}${ASSETS[k].name} +200円`, value:k };
+  });
   buttons.push({label:'買わない', value:null, primary:true});
-  const choice = await popup({ emoji:'🏦', title:'証券会社', text:`所持金: ${p.money}円<br>${ownedText?`<span style="font-size:12px;color:#9aa6d4">現在保有: ${ownedText}</span><br>`:''}どれか1つを買えます（200円）`, buttons });
+
+  const choice = await popup({ 
+    emoji:'🏦', title:'証券会社', 
+    text:`所持金: ${p.money}円<br>${ownedText?`<span style="font-size:12px;color:#9aa6d4">現在保有: ${ownedText}</span><br>`:''}どれか1つを買えます（200円）`, 
+    buttons 
+  });
   if (!choice) return;
   p.money -= 200; p.holdings[choice] += 200; p.principal[choice] += 200; playSE('purchase.mp3', 0.5);
   await popup({emoji: ASSETS[choice].emoji, title:'購入完了', text:`${ASSETS[choice].name}を200円分購入しました。`});
@@ -627,13 +668,26 @@ async function handleCard(p){
 
 async function handleGoal(p){
   playSE('fanfare.mp3', 0.7); S.finished.push(p); const rank = S.finished.length;
-  const rewardTable = [{money:3000, rate:0.30}, {money:2000, rate:0.30}, {money:2000, rate:0.20}, {money:1000, rate:0.10}, {money:0, rate:1.00}];
+  const rewardTable = [
+    {money:2000, rate:0.30}, // 1位
+    {money:1000, rate:0.30}, // 2位
+    {money:1000, rate:0.20}, // 3位
+    {money:0,    rate:0.10}, // 4位
+    {money:0,    rate:1.00}  // 5位
+  ];
   const r = rewardTable[Math.min(rank-1, rewardTable.length-1)]; let finalStock = p.holdings.stock; let finalCoin  = p.holdings.coin;
   if (r.rate > 0) { finalStock = Math.round(finalStock * (1 + r.rate)); finalCoin  = Math.round(finalCoin  * (1 + r.rate)); }
   const bondV  = p.principal.bond; const financeTotal = bondV + finalStock + finalCoin; const finalCash = p.money + r.money + financeTotal;
   p.result = { rank, cashBefore:p.money, bondV, stockV:finalStock, coinV:finalCoin, financeTotal, rewardMoney:r.money, rewardRate:r.rate, finalCash };
-  await popup({ emoji:'🏆', title:`ゴール！ ${rank}位`, text:`おつかれさま！`, comment:`手持ち ${p.money}円 ／ 金融商品 ${financeTotal}円 ／ 特典 +${r.money}円<br>${r.rate>0?`（株・コイン評価額 +${r.rate*100}%増し）`:''}`, buttons:[{label:'OK', value:true, primary:true}] });
-  addLog(`🏆 ${p.name} がゴール！ (${rank}位)`); if (S.finished.length === S.players.length) await showResults();
+  
+  await popup({ 
+    emoji:'🏆', title:`ゴール！ ${rank}位`, 
+    text:`おつかれさま！`, 
+    comment:`手持ち ${p.money}円 ／ 金融商品 ${financeTotal}円<br><span style="font-size:11px;color:#9aa6d4">※特典と最終結果は後ほど発表されます</span>`, 
+    buttons:[{label:'OK', value:true, primary:true}] 
+  });
+  addLog(`🏆 ${p.name} がゴール！ (${rank}位)`); 
+  if (S.finished.length === S.players.length) await showResults();
 }
 
 async function showResults(){
@@ -661,8 +715,18 @@ async function showResults(){
   layer.classList.add('flash'); playFanfare(); await sleep(600); layer.classList.remove('flash');
   const finalOrder = [...S.finished].sort((a,b)=> b.result.finalCash - a.result.finalCash);
   renderTable(finalOrder, true); await sleep(800); footerEl.innerHTML = '';
+  
   const btn = document.createElement('button'); btn.className = 'btn primary'; btn.textContent = 'タイトルへもどる'; btn.style.padding = '14px 40px';
-  btn.onclick = ()=>{ layer.classList.remove('show'); try { localStorage.removeItem(SAVE_KEY); } catch(e){} S.playing = false; document.getElementById('scr-game').classList.remove('active'); document.getElementById('scr-title').classList.add('active'); checkContinue(); };
+  btn.onclick = ()=>{ 
+    layer.classList.remove('show'); 
+    try { localStorage.removeItem(SAVE_KEY); } catch(e){} 
+    S.playing = false; 
+    document.getElementById('scr-game').classList.remove('active'); 
+    document.getElementById('scr-game').style.display = 'none'; // 確実に非表示に
+    document.getElementById('scr-title').style.display = 'flex'; // 確実に表示に
+    document.getElementById('scr-title').classList.add('active'); 
+    checkContinue(); 
+  };
   footerEl.appendChild(btn);
 }
 
@@ -809,6 +873,7 @@ document.getElementById('btn-continue').onclick = async ()=>{
   if (!loadGame()) return; 
   S.playing = true; 
   document.getElementById('scr-title').classList.remove('active'); 
+  document.getElementById('scr-title').style.display = 'none';
   document.getElementById('scr-game').classList.add('active'); 
   document.getElementById('scr-game').style.display = 'block'; // 画面表示を強制
   render(); cam.scale = calcInitialScale(); centerOnPlayer(); 
